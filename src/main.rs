@@ -1,3 +1,7 @@
+mod gccrs;
+
+use gccrs::Gccrs;
+
 fn main() {
-    println!("Hello, world!");
+    Gccrs::maybe_install();
 }
