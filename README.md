@@ -2,17 +2,27 @@
 
 Gaining support for cargo via rustc-wrapper
 
+This project is *not* usable yet.
+
 ## Description
 
-{Detailed description}
+The aim of this project is to allow the use of the [gccrs](https://github.com/Rust-GCC/gccrs)
+compiler alongside the [cargo buildsystem](https://github.com/rust-lang/cargo).
 
 ## Setup
 
-{Requirements and install instructions}
+Since the project does not contain any releases yet, you can install it from github using
+the following command:
+
+```sh
+> cargo install --git https://github.com/Rust-GCC/cargo-gccrs
+```
 
 ## Usage
 
-{Usage instructions}
+The goal is to provide an alternative to the classical subcommands used when working on
+Rust project, such as `build`, `run` or `test`. You should simply use `cargo gccrs` instead
+of `cargo` if you wish to execute commands using `gccrs` instead of `rustc`.
 
 ## Code of Conduct
 
