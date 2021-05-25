@@ -24,10 +24,10 @@ The goal is to provide an alternative to the classical subcommands used when wor
 Rust project, such as `build`, `run` or `test`. You should simply use `cargo gccrs` instead
 of `cargo` if you wish to execute commands using `gccrs` instead of `rustc`.
 
-## Code of Conduct
+## [Code of Conduct](CODE_OF_CONDUCT.md)
 
 This repository adopts the [Contributor Covenant Code of
-Conduct](https://www.contributor-covenant.org/version/1/4/code-of-conduct/)
+Conduct](https://www.contributor-covenant.org/version/1/4/code-of-conduct/).
 
 ## Contributing
 
