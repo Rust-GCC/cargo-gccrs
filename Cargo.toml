@@ -1,5 +1,5 @@
 [package]
-name = "gccrs-cargo-wrapper"
+name = "cargo-gccrs"
 version = "0.0.1"
 authors = ["Arthur Cohen <arthur.cohen@epita.fr"]
 edition = "2018"
