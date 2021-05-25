@@ -5,8 +5,10 @@ use std::process::Command;
 
 pub struct Gccrs;
 
+type Result<T = ()> = std::io::Result<T>;
+
 impl Gccrs {
-    fn install() {
+    fn install() -> Result {
         unreachable!("cargo-gccrs cannot install gccrs yet")
     }
 
@@ -23,9 +25,9 @@ impl Gccrs {
     }
 
     /// Install `gccrs` if the binary is not found in the path
-    pub fn maybe_install() {
+    pub fn maybe_install() -> Result {
         match Gccrs::is_installed() {
-            true => (),
+            true => Ok(()),
             false => Gccrs::install()
         }
     }
