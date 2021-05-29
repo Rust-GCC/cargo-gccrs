@@ -1,7 +1,7 @@
 //! This module aims at abstracting the usage of `gccrs` via Rust code. This is a simple
 //! wrapper around spawning a `gccrs` command with various arguments
 
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 pub struct Gccrs;
 
@@ -16,7 +16,11 @@ impl Gccrs {
         // On UNIX, we can check using the `command` built-in command, but it's not cross-platform.
         // The slow but sure way to do this is to just try and spawn a `gccrs` process. Since
         // we only have to do this once
-        match Command::new("gccrs").arg("-v").status() {
+        match Command::new("gccrs")
+            .stderr(Stdio::null())
+            .arg("-v")
+            .status()
+        {
             // We can check that gccrs exited successfully when passed with the version argument
             Ok(exit_status) => exit_status.success(),
             // If the command failed to spawn, then gccrs probably isn't in the path or installed
@@ -28,8 +32,12 @@ impl Gccrs {
     pub fn maybe_install() -> Result {
         match Gccrs::is_installed() {
             true => Ok(()),
-            false => Gccrs::install()
+            false => Gccrs::install(),
         }
     }
 
+    /// Convert arguments given to `rustc` into valid arguments for `gccrs`
+    pub fn handle_rust_args() {
+        println!("Converting rustc arguments to gccrs args")
+    }
 }
