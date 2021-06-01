@@ -11,7 +11,9 @@ fn spawn_as_wrapper() {
         .spawn()
         .expect("Unable to launch cargo-gccrs as RUSTC_WRAPPER");
 
-    cargo_gccrs.wait().expect("Subprocess cargo-gccrs didn't complete properly");
+    cargo_gccrs
+        .wait()
+        .expect("Subprocess cargo-gccrs didn't complete properly");
 }
 
 fn main() {
