@@ -11,3 +11,6 @@ Cargo.lock
 
 # Ignore ctags
 tags
+
+# Ignore gccrs generated files
+gccrs.target-options.dump
