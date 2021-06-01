@@ -26,25 +26,42 @@ impl DumpedOption {
     }
 
     // FIXME: Should we use the convert::From<&str> trait?
-    pub fn from_str(input: &str) -> Option<DumpedOption> {
+    /// Attempt to parse a [`DumpedOption`] from a given input. The input should
+    /// correspond to a singular line of the `gccrs.target-options.dump` file
+    ///
+    /// ```
+    /// let os_info = DumpedOption::from_str("unix");
+    /// let t_feature = DumpedOption::from_str("target_feature: \"sse\"");
+    /// ```
+    pub fn from_str(input: &str) -> Result<DumpedOption> {
+        use std::io::{Error, ErrorKind};
+        let invalid_input = Error::new(ErrorKind::InvalidInput, "invalid option dump");
+
         let splitted_input: Vec<&str> = input.split(':').collect();
+
         match splitted_input.len() {
             // If no colon is found, then we are parsing a singular value
-            1 => Some(DumpedOption::OsInfo(input.to_owned())),
+            1 => Ok(DumpedOption::OsInfo(input.to_owned())),
             // If just one colon is found, then we're in a mutivalue. This is valid
-            2 => DumpedOption::parse_multi_value(splitted_input),
+            2 => DumpedOption::parse_multi_value(splitted_input).ok_or(invalid_input),
             // Invalid input: Multiple colons in line
             // TODO: Is that correct?
-            // FIXME: What do we do in that case? We should return an Err rather than None
-            _ => None,
+            _ => Err(invalid_input),
         }
     }
 
     // FIXME: Should we use the fmt::Display trait?
+    /// Display a parsed [`DumpedOption`] on stdout according to the format used by `rustc`
+    /// `rustc` displays OS information in the same way as gccrs: `<info>`
+    /// For target specific options however, `rustc` uses an equal sign and no space between
+    /// the key and value. Thus, `target_<0>: <1> becomes `target_<0>=<1>`
+    ///
+    /// ```
+    /// let opt = DumpedOption::from_str("target_feature: \"sse\"").unwrap();
+    ///
+    /// opt.display()
+    /// ```
     pub fn display(&self) {
-        // rustc displays os informations in the same vein as gccrs: `<info>`
-        // For target specific options however, rustc uses an equal sign and no space
-        // `target_<...>: <...>` becomes `target_<...>=<...>`
         match self {
             DumpedOption::OsInfo(s) => println!("{}", s),
             DumpedOption::TargetSpecific(k, v) => println!("{}={}", k, v),
@@ -59,8 +76,8 @@ impl GccrsConfig {
         std::fs::read_to_string(GccrsConfig::CONFIG_FILENAME)
     }
 
-    fn parse(input: String) -> Result<Vec<Option<DumpedOption>>> {
-        Ok(input.lines().map(|line| DumpedOption::from_str(line)).collect())
+    fn parse(input: String) -> Result<Vec<DumpedOption>> {
+        input.lines().map(|line| DumpedOption::from_str(line)).collect()
     }
 
     /// Display the gccrs target options on stdout, in a format that cargo understands
@@ -68,8 +85,7 @@ impl GccrsConfig {
         let lines = GccrsConfig::read_options()?;
         let options = GccrsConfig::parse(lines)?;
 
-        // FIXME: Ugly
-        options.iter().for_each(|opt| opt.as_ref().unwrap().display());
+        options.iter().for_each(|opt| opt.display());
 
         Ok(())
     }
@@ -86,16 +102,16 @@ mod tests {
 
     #[test]
     fn os_info_valid() {
-        assert_eq!(DumpedOption::from_str("unix"), Some(DumpedOption::OsInfo(s!("unix"))))
+        assert_eq!(DumpedOption::from_str("unix").unwrap(), DumpedOption::OsInfo(s!("unix")))
     }
 
     #[test]
     fn target_kv_valid() {
-        assert_eq!(DumpedOption::from_str("target_k: v"), Some(DumpedOption::TargetSpecific(s!("target_k"), s!("v"))))
+        assert_eq!(DumpedOption::from_str("target_k: v").unwrap(), DumpedOption::TargetSpecific(s!("target_k"), s!("v")))
     }
 
     #[test]
     fn option_invalid() {
-        assert_eq!(DumpedOption::from_str("k: v0: v1"), None)
+        assert!(DumpedOption::from_str("k: v0: v1").is_err())
     }
 }
