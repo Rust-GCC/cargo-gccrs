@@ -37,8 +37,7 @@ impl Gccrs {
 
     fn is_installed() -> bool {
         // On UNIX, we can check using the `command` built-in command, but it's not cross-platform.
-        // The slow but sure way to do this is to just try and spawn a `gccrs` process. Since
-        // we only have to do this once
+        // The slow but sure way to do this is to just try and spawn a `gccrs` process.
         match Command::new("gccrs")
             .stderr(Stdio::null())
             .arg("-v")
