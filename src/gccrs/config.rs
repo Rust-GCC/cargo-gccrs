@@ -8,7 +8,7 @@ pub struct GccrsConfig;
 use super::Result;
 
 /// Different kinds of options dumped by `gccrs -frust-dump-target_options`
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum DumpedOption {
     /// Corresponds to options dumped as multiple values of the following format:
     /// `target_<...>: <...>`
@@ -69,6 +69,31 @@ impl DumpedOption {
     }
 }
 
+use std::cmp::Ordering;
+
+impl PartialOrd for DumpedOption {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Sort DumpedOptions based on syntax printing rules. `rustc` prints target options in
+/// alphabetical order, before printing OS information
+impl Ord for DumpedOption {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (DumpedOption::TargetSpecific(_, _), DumpedOption::OsInfo(_)) => Ordering::Less,
+            (DumpedOption::OsInfo(_), DumpedOption::TargetSpecific(_, _)) => Ordering::Greater,
+            // FIXME: This is the same behavior twice. There might be a way to simply match the
+            // tuple and call it `s` or `o` without unfolding it
+            (DumpedOption::OsInfo(s), DumpedOption::OsInfo(o)) => s.cmp(o),
+            (DumpedOption::TargetSpecific(s_k, s_v), DumpedOption::TargetSpecific(o_k, o_v)) => {
+                (s_k, s_v).cmp(&(o_k, o_v))
+            }
+        }
+    }
+}
+
 impl GccrsConfig {
     const CONFIG_FILENAME: &'static str = "gccrs.target-options.dump";
 
@@ -77,13 +102,19 @@ impl GccrsConfig {
     }
 
     fn parse(input: String) -> Result<Vec<DumpedOption>> {
-        input.lines().map(|line| DumpedOption::from_str(line)).collect()
+        input
+            .lines()
+            .map(|line| DumpedOption::from_str(line))
+            .collect()
     }
 
     /// Display the gccrs target options on stdout, in a format that cargo understands
     pub fn display() -> Result {
         let lines = GccrsConfig::read_options()?;
-        let options = GccrsConfig::parse(lines)?;
+        let mut options = GccrsConfig::parse(lines)?;
+
+        // Sort the vector according to the syntax printing rules
+        options.sort();
 
         options.iter().for_each(|opt| opt.display());
 
@@ -97,21 +128,42 @@ mod tests {
 
     // FIXME: Useful for tests but really ugly, keep it?
     macro_rules! s {
-        ($hamster:expr) => { $hamster.to_string() }
+        ($hamster:expr) => {
+            $hamster.to_string()
+        };
     }
 
     #[test]
     fn os_info_valid() {
-        assert_eq!(DumpedOption::from_str("unix").unwrap(), DumpedOption::OsInfo(s!("unix")))
+        assert_eq!(
+            DumpedOption::from_str("unix").unwrap(),
+            DumpedOption::OsInfo(s!("unix"))
+        )
     }
 
     #[test]
     fn target_kv_valid() {
-        assert_eq!(DumpedOption::from_str("target_k: v").unwrap(), DumpedOption::TargetSpecific(s!("target_k"), s!("v")))
+        assert_eq!(
+            DumpedOption::from_str("target_k: v").unwrap(),
+            DumpedOption::TargetSpecific(s!("target_k"), s!("v"))
+        )
     }
 
     #[test]
     fn option_invalid() {
         assert!(DumpedOption::from_str("k: v0: v1").is_err())
+    }
+
+    #[test]
+    fn sorting() {
+        let c0 = DumpedOption::from_str(r#"target_os="linux""#).unwrap();
+        let c3 = DumpedOption::from_str(r#"unix"#).unwrap();
+        let c2 = DumpedOption::from_str(r#"target_vendor="unknown""#).unwrap();
+        let c1 = DumpedOption::from_str(r#"target_pointer_width="64""#).unwrap();
+
+        let mut v = vec![c0.clone(), c3.clone(), c2.clone(), c1.clone()];
+        v.sort();
+
+        assert_eq!(v, vec![c0, c1, c2, c3]);
     }
 }

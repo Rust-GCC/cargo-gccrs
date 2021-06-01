@@ -69,36 +69,6 @@ impl Gccrs {
         Gccrs::fake_output(r#"lib___.so"#);
         Gccrs::fake_output(r#"lib___.a"#);
         Gccrs::fake_output(r#"lib___.so"#);
-        Gccrs::fake_output(r#"debug_assertions"#);
-        Gccrs::fake_output(r#"panic="unwind""#);
-        Gccrs::fake_output(r#"proc_macro"#);
-        Gccrs::fake_output(r#"target_arch="x86_64""#);
-        Gccrs::fake_output(r#"target_endian="little""#);
-        Gccrs::fake_output(r#"target_env="gnu""#);
-        Gccrs::fake_output(r#"target_family="unix""#);
-        Gccrs::fake_output(r#"target_feature="fxsr""#);
-        Gccrs::fake_output(r#"target_feature="sse""#);
-        Gccrs::fake_output(r#"target_feature="sse2""#);
-        Gccrs::fake_output(r#"target_has_atomic="16""#);
-        Gccrs::fake_output(r#"target_has_atomic="32""#);
-        Gccrs::fake_output(r#"target_has_atomic="64""#);
-        Gccrs::fake_output(r#"target_has_atomic="8""#);
-        Gccrs::fake_output(r#"target_has_atomic="ptr""#);
-        Gccrs::fake_output(r#"target_has_atomic_equal_alignment="16""#);
-        Gccrs::fake_output(r#"target_has_atomic_equal_alignment="32""#);
-        Gccrs::fake_output(r#"target_has_atomic_equal_alignment="64""#);
-        Gccrs::fake_output(r#"target_has_atomic_equal_alignment="8""#);
-        Gccrs::fake_output(r#"target_has_atomic_equal_alignment="ptr""#);
-        Gccrs::fake_output(r#"target_has_atomic_load_store="16""#);
-        Gccrs::fake_output(r#"target_has_atomic_load_store="32""#);
-        Gccrs::fake_output(r#"target_has_atomic_load_store="64""#);
-        Gccrs::fake_output(r#"target_has_atomic_load_store="8""#);
-        Gccrs::fake_output(r#"target_has_atomic_load_store="ptr""#);
-        Gccrs::fake_output(r#"target_os="linux""#);
-        Gccrs::fake_output(r#"target_pointer_width="64""#);
-        Gccrs::fake_output(r#"target_thread_local"#);
-        Gccrs::fake_output(r#"target_vendor="unknown""#);
-        Gccrs::fake_output(r#"unix"#);
 
         Gccrs::dump_config()?;
         GccrsConfig::display()
