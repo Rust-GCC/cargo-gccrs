@@ -1,11 +1,14 @@
 //! This module aims at abstracting the usage of `gccrs` via Rust code. This is a simple
 //! wrapper around spawning a `gccrs` command with various arguments
 
+mod config;
+use config::GccrsConfig;
+
 use std::process::{Command, ExitStatus, Stdio};
 
 pub struct Gccrs;
 
-type Result<T = ()> = std::io::Result<T>;
+pub type Result<T = ()> = std::io::Result<T>;
 
 impl Gccrs {
     fn install() -> Result {
@@ -59,7 +62,7 @@ impl Gccrs {
     }
 
     /// Convert arguments given to `rustc` into valid arguments for `gccrs`
-    pub fn handle_rust_args() {
+    pub fn handle_rust_args() -> Result {
         Gccrs::fake_output(r#"___"#);
         Gccrs::fake_output(r#"lib___.rlib"#);
         Gccrs::fake_output(r#"lib___.so"#);
@@ -96,5 +99,8 @@ impl Gccrs {
         Gccrs::fake_output(r#"target_thread_local"#);
         Gccrs::fake_output(r#"target_vendor="unknown""#);
         Gccrs::fake_output(r#"unix"#);
+
+        Gccrs::dump_config()?;
+        GccrsConfig::display()
     }
 }

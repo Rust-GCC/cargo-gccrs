@@ -26,7 +26,9 @@ fn main() {
 
     match first_arg.as_deref() {
         Some("gccrs") => spawn_as_wrapper(),
-        Some("rustc") => Gccrs::handle_rust_args(),
+        Some("rustc") => {
+            Gccrs::handle_rust_args().expect("cannot translate rustc arguments into gccrs ones")
+        }
         _ => eprintln!(
             "cargo-gccrs should not be invoked directly. Use the `cargo gccrs <...>` subcommand"
         ),
