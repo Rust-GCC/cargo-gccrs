@@ -8,6 +8,7 @@ pub struct GccrsConfig;
 use super::Result;
 
 /// Different kinds of options dumped by `gccrs -frust-dump-target_options`
+#[derive(Debug, PartialEq)]
 enum DumpedOption {
     /// Corresponds to options dumped as multiple values of the following format:
     /// `target_<...>: <...>`
@@ -71,5 +72,30 @@ impl GccrsConfig {
         options.iter().for_each(|opt| opt.as_ref().unwrap().display());
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // FIXME: Useful for tests but really ugly, keep it?
+    macro_rules! s {
+        ($hamster:expr) => { $hamster.to_string() }
+    }
+
+    #[test]
+    fn os_info_valid() {
+        assert_eq!(DumpedOption::from_str("unix"), Some(DumpedOption::OsInfo(s!("unix"))))
+    }
+
+    #[test]
+    fn target_kv_valid() {
+        assert_eq!(DumpedOption::from_str("target_k: v"), Some(DumpedOption::TargetSpecific(s!("target_k"), s!("v"))))
+    }
+
+    #[test]
+    fn option_invalid() {
+        assert_eq!(DumpedOption::from_str("k: v0: v1"), None)
     }
 }
