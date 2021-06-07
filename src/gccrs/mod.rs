@@ -1,7 +1,10 @@
 //! This module aims at abstracting the usage of `gccrs` via Rust code. This is a simple
 //! wrapper around spawning a `gccrs` command with various arguments
 
+mod args;
 mod config;
+
+use args::GccrsArg;
 use config::GccrsConfig;
 
 use std::process::{Command, ExitStatus, Stdio};
@@ -61,8 +64,7 @@ impl Gccrs {
         }
     }
 
-    /// Convert arguments given to `rustc` into valid arguments for `gccrs`
-    pub fn handle_rust_args() -> Result {
+    fn cfg_print() -> Result {
         Gccrs::fake_output(r#"___"#);
         Gccrs::fake_output(r#"lib___.rlib"#);
         Gccrs::fake_output(r#"lib___.so"#);
@@ -72,5 +74,25 @@ impl Gccrs {
 
         Gccrs::dump_config()?;
         GccrsConfig::display()
+    }
+
+    fn compile() -> Result {
+        Command::new("gccrs")
+            .args(std::env::args().map(|arg| dbg!(GccrsArg::from_rustc_arg(arg))).collect::<Vec<GccrsArg>>())
+            .status().map(|_| ()) // FIXME: ugly
+    }
+
+    /// Convert arguments given to `rustc` into valid arguments for `gccrs`
+    pub fn handle_rust_args() -> Result {
+        let first_rustc_arg = std::env::args().nth(2);
+
+        match first_rustc_arg.as_deref() {
+            // FIXME: Is that true?
+            // If rustc is invoked with stdin as input, then it's simply to print the
+            // configuration option in our case, since we are compiling a rust project
+            // with files and crates
+            Some("-") => Gccrs::cfg_print(),
+            _ => Gccrs::compile(),
+        }
     }
 }
