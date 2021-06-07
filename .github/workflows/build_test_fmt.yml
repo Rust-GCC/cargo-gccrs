@@ -1,0 +1,59 @@
+name: cargo-gccrs CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      master
+
+jobs:
+  coding-style:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check the coding style
+      run: |
+          cargo fmt -- --check
+
+  build:
+    runs-on: ubuntu-latest
+    needs: coding-style
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build cargo-gccrs
+      run: |
+          cargo build
+
+  build-without-warnings:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Make sure that the build completes without any warnings
+      env:
+        RUSTFLAGS: "-D warnings" # Trigger an error on warnings
+      run: |
+        cargo build
+
+  release-build:
+    runs-on: ubuntu-latest
+    needs: build-without-warnings
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Make sure that the release build is okay too
+      run: |
+        cargo build --release
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: coding-style
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Unit Tests and Documentation examples
+      run: |
+          cargo test
