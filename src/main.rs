@@ -17,18 +17,19 @@ fn spawn_as_wrapper() {
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
     #[cfg(not(release))]
-    dbg!(std::env::args());
+    dbg!(&args);
 
     Gccrs::maybe_install().expect("gccrs should be installed");
 
-    let first_arg = std::env::args().nth(1);
+    let first_arg = args.get(1).expect("Invalid arguments");
 
-    match first_arg.as_deref() {
-        Some("gccrs") => spawn_as_wrapper(),
-        Some("rustc") => {
-            Gccrs::handle_rust_args().expect("cannot translate rustc arguments into gccrs ones")
-        }
+    match first_arg.as_str() {
+        "gccrs" => spawn_as_wrapper(),
+        "rustc" => Gccrs::handle_rust_args(&args)
+            .expect("cannot translate rustc arguments into gccrs ones"),
         _ => eprintln!(
             "cargo-gccrs should not be invoked directly. Use the `cargo gccrs <...>` subcommand"
         ),

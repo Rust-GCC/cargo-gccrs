@@ -4,9 +4,10 @@
 mod args;
 mod config;
 
-use args::GccrsArg;
+use args::GccrsArgs;
 use config::GccrsConfig;
 
+use std::io::{Error, ErrorKind};
 use std::process::{Command, ExitStatus, Stdio};
 
 pub struct Gccrs;
@@ -15,6 +16,7 @@ pub type Result<T = ()> = std::io::Result<T>;
 
 impl Gccrs {
     fn install() -> Result {
+        // TODO: Remove this once `gccrs` gets stable releases or packages
         unreachable!("cargo-gccrs cannot install gccrs yet")
     }
 
@@ -76,23 +78,39 @@ impl Gccrs {
         GccrsConfig::display()
     }
 
-    fn compile() -> Result {
-        Command::new("gccrs")
-            .args(std::env::args().map(|arg| dbg!(GccrsArg::from_rustc_arg(arg))).collect::<Vec<GccrsArg>>())
-            .status().map(|_| ()) // FIXME: ugly
+    fn spawn_with_args(args: &Vec<String>) -> Result<ExitStatus> {
+        Command::new("gccrs").args(args).status()
+    }
+
+    fn compile(args: &Vec<String>) -> Result {
+        let mut gccrs_args = GccrsArgs::from_rustc_args(args);
+
+        gccrs_args
+            .drain(..)
+            .map(|arg_set| Gccrs::spawn_with_args(&arg_set.to_args()))
+            .map(|exit_status| match exit_status?.success() {
+                true => Ok(()),
+                // FIXME: Display given arguments
+                false => Err(Error::new(
+                    ErrorKind::Other,
+                    "Couldn't compile program with given arguments",
+                )),
+            })
+            .collect::<Result>()
     }
 
     /// Convert arguments given to `rustc` into valid arguments for `gccrs`
-    pub fn handle_rust_args() -> Result {
-        let first_rustc_arg = std::env::args().nth(2);
+    pub fn handle_rust_args(args: &Vec<String>) -> Result {
+        let first_rustc_arg = args.get(2);
 
-        match first_rustc_arg.as_deref() {
-            // FIXME: Is that true?
+        match first_rustc_arg.map(|s| s.as_str()) {
+            // FIXME: Is that true? Should we use getopts and just parse it and convert
+            // it as well?
             // If rustc is invoked with stdin as input, then it's simply to print the
             // configuration option in our case, since we are compiling a rust project
             // with files and crates
             Some("-") => Gccrs::cfg_print(),
-            _ => Gccrs::compile(),
+            _ => Gccrs::compile(args),
         }
     }
 }
