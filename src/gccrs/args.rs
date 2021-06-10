@@ -22,8 +22,7 @@ impl CrateType {
     pub fn from_str(s: &str) -> CrateType {
         match s {
             "bin" => CrateType::Bin,
-            // FIXME: Is 'lib' really part of this? Not always, right?
-            "dylib" | "lib" => CrateType::DyLib,
+            "dylib" => CrateType::DyLib,
             "staticlib" => CrateType::StaticLib,
             _ => CrateType::Unknown,
         }
