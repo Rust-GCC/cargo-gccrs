@@ -75,10 +75,10 @@ impl GccrsArgs {
 
         // FIXME: This is probably different on Windows, we should use Paths and PathStrs
         // instead
-        let mut output_file = match crate_type {
-            &CrateType::Bin => format!("{}/{}", out_dir, crate_name),
-            &CrateType::DyLib => format!("{}/lib{}.so", out_dir, crate_name),
-            &CrateType::StaticLib => format!("{}/lib{}.a", out_dir, crate_name),
+        let mut output_file = match *crate_type {
+            CrateType::Bin => format!("{}/{}", out_dir, crate_name),
+            CrateType::DyLib => format!("{}/lib{}.so", out_dir, crate_name),
+            CrateType::StaticLib => format!("{}/lib{}.a", out_dir, crate_name),
             _ => unreachable!(
                 "gccrs cannot handle other crate types than bin, dylib or staticlib at the moment"
             ),
@@ -86,18 +86,19 @@ impl GccrsArgs {
 
         // FIXME: Horrendous. We need to create a separate "C options" parser since we'll
         // probably use more than just `extra-filename`.
-        c_options
-            .iter()
-            .for_each(|c_opt| match c_opt.split('=').nth(0).as_deref() {
-                Some("extra-filename") => output_file.push_str(&c_opt.split('=').nth(1).unwrap()),
-                _ => {}
-            });
+        c_options.iter().for_each(|c_opt| {
+            let mut split = c_opt.split('=');
+
+            if let Some("extra-filename") = split.next().as_deref() {
+                output_file.push_str(&split.next().unwrap())
+            }
+        });
 
         dbg!(output_file)
     }
 
     /// Get the corresponding `gccrs` argument from a given `rustc` argument
-    pub fn from_rustc_args(rustc_args: &Vec<String>) -> Vec<GccrsArgs> {
+    pub fn from_rustc_args(rustc_args: &[String]) -> Vec<GccrsArgs> {
         let options = GccrsArgs::generate_parser();
 
         // Parse arguments, skipping `cargo-gccrs` and `rustc` in the invocation
@@ -128,7 +129,7 @@ impl GccrsArgs {
     }
 
     /// Convert a `GccrsArgs` structure into arguments usable to spawn a process
-    pub fn to_args(mut self) -> Vec<String> {
+    pub fn into_args(mut self) -> Vec<String> {
         let mut args = vec![];
 
         // Add all the source files to the command line
