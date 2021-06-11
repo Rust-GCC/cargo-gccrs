@@ -19,9 +19,6 @@ fn spawn_as_wrapper() {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
-    #[cfg(not(release))]
-    dbg!(&args);
-
     Gccrs::maybe_install().expect("gccrs should be installed");
 
     let first_arg = args.get(1).expect("Invalid arguments");

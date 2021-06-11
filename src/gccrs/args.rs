@@ -3,6 +3,8 @@
 
 use getopts::{Matches, Options};
 
+use super::{Error, Result};
+
 /// Crate types supported by `gccrs`
 #[derive(Clone, Copy)]
 pub enum CrateType {
@@ -51,7 +53,6 @@ impl GccrsArgs {
         );
         options.optopt("", "emit", "Requested output to emit", "KIND");
         options.optopt("", "json", "JSON Rendering type", "RENDER");
-        options.optopt("", "json", "JSON Rendering type", "RENDER");
         options.optmulti("C", "", "Extra compiler options", "OPTION[=VALUE]");
         options.optmulti(
             "L",
@@ -64,10 +65,14 @@ impl GccrsArgs {
         options
     }
 
-    fn format_output_filename(matches: &Matches, crate_type: &CrateType) -> String {
-        // FIXME: No unwraps here
-        let crate_name = matches.opt_str("crate-name").unwrap();
-        let out_dir = matches.opt_str("out-dir").unwrap();
+    fn format_output_filename(
+        matches: &Matches,
+        crate_type: CrateType,
+    ) -> Result<(String, CrateType)> {
+        // Return an [`Error::InvalidArg`] error if `--crate-name` or `out-dir` weren't
+        // given as arguments at this point of the translation
+        let crate_name = matches.opt_str("crate-name").ok_or(Error::InvalidArg)?;
+        let out_dir = matches.opt_str("out-dir").ok_or(Error::InvalidArg)?;
 
         // FIXME: Figure out a way to return multiple output filenames. Just handle `bin`
         // for now
@@ -75,7 +80,7 @@ impl GccrsArgs {
 
         // FIXME: This is probably different on Windows, we should use Paths and PathStrs
         // instead
-        let mut output_file = match *crate_type {
+        let mut output_file = match crate_type {
             CrateType::Bin => format!("{}/{}", out_dir, crate_name),
             CrateType::DyLib => format!("{}/lib{}.so", out_dir, crate_name),
             CrateType::StaticLib => format!("{}/lib{}.a", out_dir, crate_name),
@@ -94,36 +99,27 @@ impl GccrsArgs {
             }
         });
 
-        dbg!(output_file)
+        Ok((output_file, crate_type))
     }
 
     /// Get the corresponding `gccrs` argument from a given `rustc` argument
-    pub fn from_rustc_args(rustc_args: &[String]) -> Vec<GccrsArgs> {
+    pub fn from_rustc_args(rustc_args: &[String]) -> Result<Vec<GccrsArgs>> {
         let options = GccrsArgs::generate_parser();
 
         // Parse arguments, skipping `cargo-gccrs` and `rustc` in the invocation
-        let matches = match options.parse(&rustc_args[2..]) {
-            Ok(m) => m,
-            Err(err) => unreachable!("{:?}", err),
-        };
+        let matches = options.parse(&rustc_args[2..])?;
 
         matches
             .opt_strs("crate-type")
             .iter()
             .map(|type_str| CrateType::from_str(&type_str))
-            .map(|crate_type| {
-                (
-                    // We need to keep the crate_type as well, in order to spawn the
-                    // correct command. Return it in a tuple alongside the generated
-                    // output filename.
+            .map(|crate_type| GccrsArgs::format_output_filename(&matches, crate_type))
+            .map(|result_tuple| {
+                result_tuple.map(|(output_file, crate_type)| GccrsArgs {
+                    source_files: matches.free.clone(),
                     crate_type,
-                    GccrsArgs::format_output_filename(&matches, &crate_type),
-                )
-            })
-            .map(|(crate_type, output_file)| GccrsArgs {
-                source_files: matches.free.clone(),
-                crate_type,
-                output_file,
+                    output_file,
+                })
             })
             .collect()
     }

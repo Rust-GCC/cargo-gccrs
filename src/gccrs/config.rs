@@ -5,7 +5,7 @@
 
 pub struct GccrsConfig;
 
-use super::Result;
+use super::{Error, Result};
 
 /// Different kinds of options dumped by `gccrs -frust-dump-target_options`
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -34,8 +34,7 @@ impl DumpedOption {
     /// let t_feature = DumpedOption::from_str("target_feature: \"sse\"");
     /// ```
     pub fn from_str(input: &str) -> Result<DumpedOption> {
-        use std::io::{Error, ErrorKind};
-        let invalid_input = Error::new(ErrorKind::InvalidInput, "invalid option dump");
+        let invalid_input = Error::InvalidCfgDump;
 
         let splitted_input: Vec<&str> = input.split(':').collect();
 
@@ -98,7 +97,9 @@ impl GccrsConfig {
     const CONFIG_FILENAME: &'static str = "gccrs.target-options.dump";
 
     fn read_options() -> Result<String> {
-        std::fs::read_to_string(GccrsConfig::CONFIG_FILENAME)
+        let content = std::fs::read_to_string(GccrsConfig::CONFIG_FILENAME)?;
+
+        Ok(content)
     }
 
     fn parse(input: String) -> Result<Vec<DumpedOption>> {

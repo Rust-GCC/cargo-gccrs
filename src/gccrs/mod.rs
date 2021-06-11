@@ -3,16 +3,21 @@
 
 mod args;
 mod config;
+mod error;
 
 use args::GccrsArgs;
 use config::GccrsConfig;
+use error::Error;
 
-use std::io::{Error, ErrorKind};
 use std::process::{Command, ExitStatus, Stdio};
 
 pub struct Gccrs;
 
-pub type Result<T = ()> = std::io::Result<T>;
+pub type Result<T = ()> = std::result::Result<T, Error>;
+
+/// Internal type to use when executing commands. The errors should be converted into
+/// [`Error`]s using the `?` operator.
+type CmdResult<T = ()> = std::io::Result<T>;
 
 impl Gccrs {
     fn install() -> Result {
@@ -34,7 +39,7 @@ impl Gccrs {
         }
     }
 
-    fn dump_config() -> Result<ExitStatus> {
+    fn dump_config() -> CmdResult<ExitStatus> {
         Command::new("gccrs")
             .arg("-x")
             .arg("rs")
@@ -78,26 +83,23 @@ impl Gccrs {
         GccrsConfig::display()
     }
 
-    fn spawn_with_args(args: &[String]) -> Result<ExitStatus> {
+    fn spawn_with_args(args: &[String]) -> CmdResult<ExitStatus> {
         Command::new("gccrs").args(args).status()
     }
 
     fn compile(args: &[String]) -> Result {
-        let mut gccrs_args = GccrsArgs::from_rustc_args(args);
+        let gccrs_args = GccrsArgs::from_rustc_args(args)?;
 
-        let res = gccrs_args
-            .drain(..)
+        gccrs_args
+            .into_iter()
             .map(|arg_set| Gccrs::spawn_with_args(&arg_set.into_args()))
-            .try_for_each(|exit_status| match exit_status?.success() {
-                true => Ok(()),
-                // FIXME: Display given arguments
-                false => Err(Error::new(
-                    ErrorKind::Other,
-                    "Couldn't compile program with given arguments",
-                )),
-            });
-
-        res
+            .try_for_each(|exit_status| {
+                if exit_status?.success() {
+                    Ok(())
+                } else {
+                    Err(Error::CompileError)
+                }
+            })
     }
 
     /// Convert arguments given to `rustc` into valid arguments for `gccrs`
