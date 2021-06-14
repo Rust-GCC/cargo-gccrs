@@ -72,6 +72,8 @@ impl Gccrs {
     }
 
     fn cfg_print() -> Result {
+        // FIXME: The output needs to be adapted based on the target triple. For example,
+        // produce a .dll on windows, etc etc
         Gccrs::fake_output(r#"___"#);
         Gccrs::fake_output(r#"lib___.rlib"#);
         Gccrs::fake_output(r#"lib___.so"#);
