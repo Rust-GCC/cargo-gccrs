@@ -3,6 +3,9 @@ name = "cargo-gccrs"
 version = "0.0.1"
 authors = ["Arthur Cohen <arthur.cohen@epita.fr"]
 edition = "2018"
+description = "Adding gccrs support to the cargo build system"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rust-GCC/cargo-gccrs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
