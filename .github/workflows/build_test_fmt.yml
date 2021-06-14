@@ -1,0 +1,28 @@
+name: cargo-gccrs CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      master
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check the coding style
+      run: |
+          cargo fmt -- --check
+
+    - name: Check for clippy warnings
+      run: cargo clippy
+
+    - name: Build
+      run: cargo build
+
+    - name: Run Unit Tests and Documentation examples
+      run: cargo test
