@@ -72,6 +72,14 @@ fn format_output_filename(
     Ok((output_file, crate_type))
 }
 
+/// Add `.tmp.o` to the expected output filename. Since we will already have produced the
+/// expected filename at this point, and we are likely currently converting it to a String
+/// to spawn as an argument, this function can avoid taking a Path as parameter and returning
+/// a PathBuf.
+fn object_file_name(output_file: &str) -> String {
+    format!("{}.tmp.o", output_file)
+}
+
 /// Structure used to represent arguments passed to `gccrs`. Convert them from `rustc`
 /// arguments using [`GccrsArg::from_rustc_arg`]
 pub struct GccrsArgs {
@@ -108,12 +116,16 @@ impl GccrsArgs {
     }
 
     fn generate_static_lib(args: &GccrsArgs) -> Result {
+        let output_file = args
+            .output_file
+            .to_str()
+            .expect("Cannot handle non-unicode filenames yet");
+
         Command::new("ar")
             .args(&[
                 "rcs", // Create the archive and add the files to it
-                args.output_file
-                    .to_str()
-                    .expect("Cannot handle non-unicode filenames yet"),
+                output_file,
+                object_file_name(&output_file).as_str(),
             ])
             .status()?;
 
@@ -194,7 +206,9 @@ impl GccrsArgs {
             CrateType::StaticLib => args.append(&mut vec![
                 String::from("-c"),
                 String::from("-o"),
-                format!("{}.tmp.o", output_file),
+                // We can unwrap here since converting the PathBuf to string at the beginning
+                // of the function would have thrown an error on a non UTF-8 output_file
+                object_file_name(&output_file),
             ]),
             _ => {}
         }
