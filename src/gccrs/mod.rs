@@ -7,7 +7,7 @@ mod error;
 
 use args::GccrsArgs;
 use config::GccrsConfig;
-use error::Error;
+pub use error::Error;
 
 use std::process::{Command, ExitStatus, Stdio};
 
