@@ -20,10 +20,10 @@ pub enum CrateType {
     Unknown,
 }
 
-impl CrateType {
-    /// Get the corresponding [`CrateType`] from a given option to the `--crate-type`
-    /// option
-    pub fn from_str(s: &str) -> CrateType {
+/// Get the corresponding [`CrateType`] from a given option to the `--crate-type`
+/// option
+impl<'a> From<&'a str> for CrateType {
+    fn from(s: &'a str) -> CrateType {
         match s {
             "bin" => CrateType::Bin,
             "dylib" => CrateType::DyLib,
@@ -173,7 +173,7 @@ impl GccrsArgs {
         matches
             .opt_strs("crate-type")
             .iter()
-            .map(|type_str| CrateType::from_str(&type_str))
+            .map(|type_str| CrateType::from(type_str.as_str()))
             .map(|crate_type| format_output_filename(&matches, crate_type))
             .map(|result_tuple| {
                 result_tuple.map(|(output_file, crate_type)| {
