@@ -8,7 +8,7 @@ use getopts::{Matches, Options};
 use super::{Error, Result};
 
 /// Crate types supported by `gccrs`
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CrateType {
     /// Binary application
     Bin,
