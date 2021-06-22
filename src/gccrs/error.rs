@@ -8,7 +8,7 @@ use getopts::Fail;
 #[derive(Debug)]
 pub enum Error {
     /// Invalid argument given to `gccrs`
-    InvalidArg,
+    InvalidArg(String),
     /// Invalid config line dumped when executing `gccrs -frust-dump-*`
     InvalidCfgDump,
     /// Error when compiling a program using `gccrs`
@@ -27,7 +27,7 @@ impl From<IoError> for Error {
 // If parsing the options using `getopts` fail, then it was because an unhandled argument
 // was given to the translation unit
 impl From<Fail> for Error {
-    fn from(_: Fail) -> Self {
-        Error::InvalidArg
+    fn from(arg_fail: Fail) -> Self {
+        Error::InvalidArg(arg_fail.to_string())
     }
 }

@@ -39,8 +39,12 @@ fn format_output_filename(
 ) -> Result<(PathBuf, CrateType)> {
     // Return an [`Error::InvalidArg`] error if `--crate-name` or `out-dir` weren't
     // given as arguments at this point of the translation
-    let crate_name = matches.opt_str("crate-name").ok_or(Error::InvalidArg)?;
-    let out_dir = matches.opt_str("out-dir").ok_or(Error::InvalidArg)?;
+    let crate_name = matches
+        .opt_str("crate-name")
+        .ok_or_else(|| Error::InvalidArg(String::from("no `--crate-name` provided")))?;
+    let out_dir = matches
+        .opt_str("out-dir")
+        .ok_or_else(|| Error::InvalidArg(String::from("no `--out-dir` provided")))?;
     let c_options = matches.opt_strs("C");
 
     let mut output_file = PathBuf::from(&out_dir);
