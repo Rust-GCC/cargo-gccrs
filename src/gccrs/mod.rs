@@ -92,16 +92,18 @@ impl Gccrs {
     fn compile(args: &[String]) -> Result {
         let gccrs_args = GccrsArgs::from_rustc_args(args)?;
 
-        gccrs_args
-            .into_iter()
-            .map(|arg_set| Gccrs::spawn_with_args(&arg_set.into_args()))
-            .try_for_each(|exit_status| {
-                if exit_status?.success() {
-                    Ok(())
-                } else {
-                    Err(Error::CompileError)
-                }
-            })
+        for arg_set in gccrs_args.into_iter() {
+            let exit_status = Gccrs::spawn_with_args(&arg_set.as_args())?;
+            if !exit_status.success() {
+                return Err(Error::CompileError);
+            }
+
+            if let Some(callback) = arg_set.callback() {
+                callback(&arg_set)?
+            }
+        }
+
+        Ok(())
     }
 
     /// Convert arguments given to `rustc` into valid arguments for `gccrs`

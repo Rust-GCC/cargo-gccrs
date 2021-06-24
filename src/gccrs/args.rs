@@ -1,14 +1,14 @@
 //! This module interprets arguments given to `rustc` and transforms them into valid
 //! arguments for `gccrs`.
 
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Command};
 
 use getopts::{Matches, Options};
 
 use super::{Error, Result};
 
 /// Crate types supported by `gccrs`
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CrateType {
     /// Binary application
     Bin,
@@ -20,10 +20,10 @@ pub enum CrateType {
     Unknown,
 }
 
-impl CrateType {
-    /// Get the corresponding [`CrateType`] from a given option to the `--crate-type`
-    /// option
-    pub fn from_str(s: &str) -> CrateType {
+/// Get the corresponding [`CrateType`] from a given option to the `--crate-type`
+/// option
+impl<'a> From<&'a str> for CrateType {
+    fn from(s: &'a str) -> CrateType {
         match s {
             "bin" => CrateType::Bin,
             "dylib" => CrateType::DyLib,
@@ -67,7 +67,7 @@ fn format_output_filename(
     match crate_type {
         CrateType::Bin => output_file.push(&format!("{}{}", crate_name, extra_filename)),
         CrateType::DyLib => output_file.push(&format!("lib{}{}.so", crate_name, extra_filename)),
-        CrateType::StaticLib => output_file.push(&format!("lib{}.a{}", crate_name, extra_filename)),
+        CrateType::StaticLib => output_file.push(&format!("lib{}{}.a", crate_name, extra_filename)),
         _ => unreachable!(
             "gccrs cannot handle other crate types than bin, dylib or staticlib at the moment"
         ),
@@ -76,12 +76,21 @@ fn format_output_filename(
     Ok((output_file, crate_type))
 }
 
+/// Add `.tmp.o` to the expected output filename. Since we will already have produced the
+/// expected filename at this point, and we are likely currently converting it to a String
+/// to spawn as an argument, this function can avoid taking a Path as parameter and returning
+/// a PathBuf.
+fn object_file_name(output_file: &str) -> String {
+    format!("{}.tmp.o", output_file)
+}
+
 /// Structure used to represent arguments passed to `gccrs`. Convert them from `rustc`
 /// arguments using [`GccrsArg::from_rustc_arg`]
 pub struct GccrsArgs {
     source_files: Vec<String>,
     crate_type: CrateType,
     output_file: PathBuf,
+    callback: Option<&'static dyn Fn(&GccrsArgs) -> Result>,
 }
 
 impl GccrsArgs {
@@ -110,6 +119,54 @@ impl GccrsArgs {
         options
     }
 
+    fn generate_static_lib(args: &GccrsArgs) -> Result {
+        let output_file = args
+            .output_file
+            .to_str()
+            .expect("Cannot handle non-unicode filenames yet");
+
+        Command::new("ar")
+            .args(&[
+                "rcs", // Create the archive and add the files to it
+                output_file,
+                object_file_name(&output_file).as_str(),
+            ])
+            .status()?;
+
+        Ok(())
+    }
+
+    fn with_callback(self, function: &'static dyn Fn(&GccrsArgs) -> Result) -> GccrsArgs {
+        GccrsArgs {
+            callback: Some(function),
+            ..self
+        }
+    }
+
+    // Set a callback to the arguments if necessary
+    fn maybe_with_callback(self) -> GccrsArgs {
+        if self.crate_type == CrateType::StaticLib {
+            self.with_callback(&GccrsArgs::generate_static_lib)
+        } else {
+            self
+        }
+    }
+
+    fn new(source_files: &[String], crate_type: CrateType, output_file: PathBuf) -> GccrsArgs {
+        GccrsArgs {
+            source_files: Vec::from(source_files),
+            crate_type,
+            output_file,
+            callback: None,
+        }
+    }
+
+    // Execute an argument set's callback if present. Returns Ok if no callback was
+    // present
+    pub fn callback(&self) -> Option<&'static dyn Fn(&GccrsArgs) -> Result> {
+        self.callback
+    }
+
     /// Get the corresponding `gccrs` argument from a given `rustc` argument
     pub fn from_rustc_args(rustc_args: &[String]) -> Result<Vec<GccrsArgs>> {
         let options = GccrsArgs::generate_parser();
@@ -120,21 +177,19 @@ impl GccrsArgs {
         matches
             .opt_strs("crate-type")
             .iter()
-            .map(|type_str| CrateType::from_str(&type_str))
+            .map(|type_str| CrateType::from(type_str.as_str()))
             .map(|crate_type| format_output_filename(&matches, crate_type))
             .map(|result_tuple| {
-                result_tuple.map(|(output_file, crate_type)| GccrsArgs {
-                    source_files: matches.free.clone(),
-                    crate_type,
-                    output_file,
+                result_tuple.map(|(output_file, crate_type)| {
+                    GccrsArgs::new(&matches.free, crate_type, output_file).maybe_with_callback()
                 })
             })
             .collect()
     }
 
-    /// Convert a `GccrsArgs` structure into arguments usable to spawn a process
-    pub fn into_args(self) -> Vec<String> {
-        let mut args = self.source_files;
+    /// Create arguments usable when spawning a process from an instance of [`GccrsArgs`]
+    pub fn as_args(&self) -> Vec<String> {
+        let mut args = self.source_files.clone();
 
         // FIXME: How does gccrs behave with non-unicode filenames? Is gcc[rs] available
         // on the OSes that support non-unicode filenames?
@@ -152,7 +207,14 @@ impl GccrsArgs {
                 String::from("-o"),
                 output_file,
             ]),
-            CrateType::StaticLib => unreachable!("Cannot generate static libraries yet"),
+            // FIXME: Maybe don't format temporary object file like this?
+            CrateType::StaticLib => args.append(&mut vec![
+                String::from("-c"),
+                String::from("-o"),
+                // We can unwrap here since converting the PathBuf to string at the beginning
+                // of the function would have thrown an error on a non UTF-8 output_file
+                object_file_name(&output_file),
+            ]),
             _ => {}
         }
 
