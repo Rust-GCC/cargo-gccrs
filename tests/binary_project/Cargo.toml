@@ -1,5 +1,5 @@
 [package]
-name = "basic_rust_project"
+name = "binary_project"
 version = "0.1.0"
 authors = ["CohenArthur <arthur.cohen@epita.fr>"]
 edition = "2018"
