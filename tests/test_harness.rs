@@ -1,3 +1,5 @@
+use tempdir::TempDir;
+
 use std::{
     env::{self, join_paths},
     io::{Error, ErrorKind, Result},
@@ -41,6 +43,16 @@ impl Harness {
         })
     }
 
+    /// Copy a folder to a set destination
+    fn copy_folder(src: &str, dest: &str) -> Result {
+        Command::new("cp")
+            .arg("-r")
+            .arg(src)
+            .arg(dest)
+            .status()
+            .into_result()
+    }
+
     /// Runs the folder generic test suite on a give folder. This test suite
     /// makes sure that the project compiles using `rustc` as well as `gccrs`,
     /// before verifying that both compilers output create binaires with the
@@ -54,6 +66,10 @@ impl Harness {
 
         // Build the project using rustc
         Harness::cargo_build(false)?;
+
+        // Copy the rustc target folder to a temporary directory
+        let rustc_target_tmpdir = TempDir::new("target-rustc")?;
+        Harness::copy_folder("target", rustc_target_tmpdir.path().to_str().unwrap())?;
 
         // Build the project using gccrs
         Harness::cargo_build(true)?;
