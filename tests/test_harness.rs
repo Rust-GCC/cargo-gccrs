@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env::{self, join_paths},
     fs::canonicalize,
     io::{Error, ErrorKind},
     process::{Command, ExitStatus},
@@ -41,17 +41,12 @@ impl Harness {
 
             // Tweak the path so that the most recently compiled *debug* version of
             // cargo-gccrs is available as a subcommand
-            let path = env::var("PATH").unwrap();
+            let mut paths = vec![canonicalize("../../target/debug")?];
+            paths.append(&mut env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>());
 
-            cmd.env(
-                "PATH",
-                format!(
-                    "{}:{}",
-                    // Go back two steps since we are in <cargo-gccrs>/tests/<current-project>/
-                    canonicalize("../../target/debug/")?.to_str().unwrap(),
-                    path
-                ),
-            );
+            let new_path = join_paths(paths.iter()).unwrap();
+
+            cmd.env("PATH", new_path);
         }
 
         cmd.arg("build").status().into_result()
