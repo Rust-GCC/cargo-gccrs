@@ -10,9 +10,7 @@ mod tests {
 
     #[test]
     fn check_project_compilation() {
-        TEST_FOLDERS
-            .iter()
-            .for_each(|f| Harness::check_folder(*f).unwrap());
+        TEST_FOLDERS.iter().for_each(|f| Harness::check_folder(*f).unwrap());
 
         assert!(Harness::check_folder("invalid_code").is_err())
     }
