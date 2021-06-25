@@ -1,0 +1,42 @@
+name: cargo-gccrs CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      main
+
+jobs:
+  fmt-lint-build:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check the coding style
+        run: |
+          cargo fmt -- --check
+
+      - name: Check for successful compilation
+        run: cargo check
+
+      - name: Check for clippy warnings
+        run: cargo clippy
+
+  unit-and-integration-tests:
+    needs: fmt-lint-build
+    runs-on: ubuntu-latest
+    container:
+      image: philberty/gccrs
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run unit and functional tests
+        run: |
+          apt install ca-certificates -y
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          . $HOME/.cargo/env
+          cargo test
