@@ -9,7 +9,11 @@ mod tests {
     const TEST_FOLDERS: &[&str] = &["binary_project", "static_lib", "shared_library"];
 
     #[test]
-    fn compile_projects() {
-        TEST_FOLDERS.iter().for_each(|f| Harness::check_folder(*f).unwrap())
+    fn check_project_compilation() {
+        TEST_FOLDERS
+            .iter()
+            .for_each(|f| Harness::check_folder(*f).unwrap());
+
+        assert!(Harness::check_folder("invalid_code").is_err())
     }
 }
