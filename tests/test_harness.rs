@@ -1,5 +1,6 @@
 use std::{
     env,
+    fs::canonicalize,
     io::{Error, ErrorKind},
     process::{Command, ExitStatus},
 };
@@ -35,7 +36,22 @@ impl Harness {
         let mut cmd = Command::new("cargo");
 
         if use_gccrs {
+            // Add `gccrs` argument so that `cargo build` becomes `cargo gccrs build`
             cmd.arg("gccrs");
+
+            // Tweak the path so that the most recently compiled *debug* version of
+            // cargo-gccrs is available as a subcommand
+            let path = env::var("PATH").unwrap();
+
+            cmd.env(
+                "PATH",
+                format!(
+                    "{}:{}",
+                    // Go back two steps since we are in <cargo-gccrs>/tests/<current-project>/
+                    canonicalize("../../target/debug/")?.to_str().unwrap(),
+                    path
+                ),
+            );
         }
 
         cmd.arg("build").status().into_result()
