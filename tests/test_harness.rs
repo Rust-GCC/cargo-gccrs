@@ -2,33 +2,12 @@ use std::{
     env::{self, join_paths},
     fs::canonicalize,
     io::{Error, ErrorKind},
-    process::{Command, ExitStatus},
+    process::Command,
 };
 
 pub struct Harness;
 
 type Result<T = ()> = std::io::Result<T>;
-
-/// Maps an exit status to a result, meaning that a non-successful exit status
-/// will get mapped to an `Err` variant
-trait ExitStatusConverter {
-    fn into_result(self) -> Result;
-}
-
-impl ExitStatusConverter for Result<ExitStatus> {
-    fn into_result(self) -> Result {
-        match self {
-            Ok(exit_code) => match exit_code.success() {
-                true => Ok(()),
-                false => Err(Error::new(
-                    ErrorKind::Other,
-                    "command did not exit successfully",
-                )),
-            },
-            Err(e) => Err(e),
-        }
-    }
-}
 
 impl Harness {
     /// Build the project present in the current directory using `rustc` or `gccrs`
@@ -49,7 +28,16 @@ impl Harness {
             cmd.env("PATH", new_path);
         }
 
-        cmd.arg("build").status().into_result()
+        cmd.arg("build").status().and_then(|s| {
+            if s.success() {
+                Ok(())
+            } else {
+                Err(Error::new(
+                    ErrorKind::Other,
+                    "command did not exit successfully",
+                ))
+            }
+        })
     }
 
     /// Runs the folder generic test suite on a give folder. This test suite
