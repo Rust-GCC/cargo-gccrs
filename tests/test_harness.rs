@@ -2,6 +2,7 @@ use std::{
     env::{self, join_paths},
     fs::canonicalize,
     io::{Error, ErrorKind, Result},
+    path::PathBuf,
     process::Command,
 };
 
@@ -44,9 +45,10 @@ impl Harness {
     /// correct file name and correct location.
     pub fn check_folder(folder_path: &str) -> Result<()> {
         let old_path = env::current_dir()?;
-        let folder_path = format!("tests/{}", folder_path);
+        let mut test_dir = PathBuf::from("tests");
+        test_dir.push(folder_path);
 
-        env::set_current_dir(&folder_path)?;
+        env::set_current_dir(&test_dir)?;
 
         // Build the project using rustc
         Harness::cargo_build(false)?;
