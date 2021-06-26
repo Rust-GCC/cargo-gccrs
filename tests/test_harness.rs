@@ -1,17 +1,15 @@
 use std::{
     env::{self, join_paths},
     fs::canonicalize,
-    io::{Error, ErrorKind},
+    io::{Error, ErrorKind, Result},
     process::Command,
 };
 
 pub struct Harness;
 
-type Result<T = ()> = std::io::Result<T>;
-
 impl Harness {
     /// Build the project present in the current directory using `rustc` or `gccrs`
-    fn cargo_build(use_gccrs: bool) -> Result {
+    fn cargo_build(use_gccrs: bool) -> Result<()> {
         let mut cmd = Command::new("cargo");
 
         if use_gccrs {
@@ -44,7 +42,7 @@ impl Harness {
     /// makes sure that the project compiles using `rustc` as well as `gccrs`,
     /// before verifying that both compilers output create binaires with the
     /// correct file name and correct location.
-    pub fn check_folder(folder_path: &str) -> Result {
+    pub fn check_folder(folder_path: &str) -> Result<()> {
         let old_path = env::current_dir()?;
         let folder_path = format!("tests/{}", folder_path);
 
