@@ -1,35 +1,24 @@
 mod gccrs;
 
+use anyhow::{anyhow, Result};
 use gccrs::{Error, Gccrs};
+use thiserror::Error;
 
 /// Error type around spawning cargo-gccrs as a `rustc` wrapper
+#[derive(Error, Debug)]
 enum WrapperError {
     /// Error when invoking `cargo-gccrs`
+    #[error("Error when invoking `cargo-gccrs`")]
     InvocationError,
     /// Error when initially launching `cargo-gccrs` as a wrapper to `rustc`
+    #[error("Error when launching `cargo-gccrs` as a `rustc` wrapper")]
     Launch,
     /// The `cargo-gccrs` process did not complete successfully
+    #[error("`cargo-gccrs` did not complete succesfully")]
     ExitError,
     /// Error when handling `rustc` arguments and compiling with `gccrs`
+    #[error("{0}")] // Display is already handled by gccrs::Error
     GccrsError(Error),
-}
-
-impl WrapperError {
-    /// Exit code to return on errors
-    const EXIT_CODE: i32 = 1;
-
-    /// Display information regarding the error on `stderr` and exit with a proper error
-    /// code
-    fn handle(&self) {
-        match self {
-            WrapperError::InvocationError => eprintln!("cargo-gccrs should not be invoked directly. Use the `cargo gccrs <...>` subcommand"),
-            WrapperError::Launch => eprintln!("Unable to launch cargo-gccrs as RUSTC_WRAPPER"),
-            WrapperError::ExitError => eprintln!("Subprocess cargo-gccrs didn't complete successfully"),
-            WrapperError::GccrsError(gccrs_err) => eprintln!("Couldn't execute gccrs properly: {:?}", gccrs_err),
-        }
-
-        std::process::exit(WrapperError::EXIT_CODE);
-    }
 }
 
 fn spawn_as_wrapper() -> Result<(), WrapperError> {
@@ -51,7 +40,7 @@ fn spawn_as_wrapper() -> Result<(), WrapperError> {
     }
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     Gccrs::maybe_install().expect("gccrs should be installed");
@@ -64,7 +53,5 @@ fn main() {
         _ => Err(WrapperError::InvocationError),
     };
 
-    if let Err(wrapper_error) = res {
-        wrapper_error.handle();
-    }
+    res.map_err(|e| anyhow!(e))
 }

@@ -11,3 +11,5 @@ repository = "https://github.com/Rust-GCC/cargo-gccrs"
 
 [dependencies]
 getopts = "0.2"
+thiserror = "1.0"
+anyhow = "1.0"
