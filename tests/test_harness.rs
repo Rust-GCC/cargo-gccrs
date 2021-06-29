@@ -1,6 +1,5 @@
 use std::{
     env::{self, join_paths},
-    fs::canonicalize,
     io::{Error, ErrorKind, Result},
     path::PathBuf,
     process::Command,
@@ -18,8 +17,11 @@ impl Harness {
             cmd.arg("gccrs");
 
             // Tweak the path so that the most recently compiled *debug* version of
-            // cargo-gccrs is available as a subcommand
-            let mut paths = vec![canonicalize("../../target/debug")?];
+            // cargo-gccrs is available as a subcommand.
+            // Create this target path in a way that's compatible with Windows.
+            let target_path = PathBuf::from("..").join("..").join("target").join("debug");
+
+            let mut paths = vec![target_path];
             paths.append(&mut env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>());
 
             let new_path = join_paths(paths.iter()).unwrap();
