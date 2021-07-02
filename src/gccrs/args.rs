@@ -1,7 +1,7 @@
 //! This module interprets arguments given to `rustc` and transforms them into valid
 //! arguments for `gccrs`.
 
-use std::{path::PathBuf, process::Command};
+use std::{env, path::PathBuf, process::Command};
 
 use getopts::{Matches, Options};
 
@@ -187,9 +187,22 @@ impl GccrsArgs {
             .collect()
     }
 
+    const COMPILER_ENV_ARGS: &'static str = "GCCRS_EXTRA_ARGS";
+
+    /// Fetch the extra arguments given by the user for a specific environment string
+    fn env_extra_args(key: &str) -> Option<Vec<String>> {
+        env::var(key)
+            .map(|s| s.split(' ').map(|arg| arg.to_owned()).collect())
+            .ok()
+    }
+
     /// Create arguments usable when spawning a process from an instance of [`GccrsArgs`]
     pub fn as_args(&self) -> Vec<String> {
         let mut args = self.source_files.clone();
+
+        if let Some(mut user_compiler_args) = GccrsArgs::env_extra_args(GccrsArgs::COMPILER_ENV_ARGS) {
+            args.append(&mut user_compiler_args);
+        }
 
         // FIXME: How does gccrs behave with non-unicode filenames? Is gcc[rs] available
         // on the OSes that support non-unicode filenames?
