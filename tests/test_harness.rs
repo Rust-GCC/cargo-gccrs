@@ -25,10 +25,10 @@ pub struct Harness;
 
 impl Harness {
     /// Build the project present in the current directory using `rustc` or `gccrs`
-    fn cargo_build(use_gccrs: bool) -> Result<()> {
-        Command::new("cargo").arg("clean").status()?;
+    fn cargo_build(use_gccrs: bool, target_dir: Option<&TempDir>) -> Result<()> {
         let mut cmd = Command::new("cargo");
 
+        // If a target dir is given, then run `cargo gccrs build`
         if use_gccrs {
             // Add `gccrs` argument so that `cargo build` becomes `cargo gccrs build`
             cmd.arg("gccrs");
@@ -46,7 +46,14 @@ impl Harness {
             cmd.env("PATH", new_path);
         }
 
-        cmd.arg("build").status().and_then(|s| {
+        cmd.arg("build");
+
+        if let Some(target_dir) = target_dir {
+            cmd.arg("--target-dir");
+            cmd.arg(target_dir.path());
+        }
+
+        cmd.status().and_then(|s| {
             if s.success() {
                 Ok(())
             } else {
@@ -56,26 +63,6 @@ impl Harness {
                 ))
             }
         })
-    }
-
-    /// Copy a folder to a set destination
-    fn copy_folder(src: &Path, dest: &Path) -> Result<()> {
-        Command::new("cp")
-            .arg("-r")
-            .arg(src)
-            .arg(dest)
-            .status()
-            // FIXME: Turn this into a trait to remove code duplication?
-            .and_then(|s| {
-                if s.success() {
-                    Ok(())
-                } else {
-                    Err(Error::new(
-                        ErrorKind::Other,
-                        "command did not exit successfully",
-                    ))
-                }
-            })
     }
 
     fn get_output_filename(dir_iter: ReadDir, file_type: &FileType) -> Result<Option<OsString>> {
@@ -96,12 +83,11 @@ impl Harness {
         Ok(None)
     }
 
-    fn compare_filenames(rustc_target: &Path, file_type: FileType) -> Result<()> {
-        let rustc_deps_dir = PathBuf::from(rustc_target)
-            .join("target")
-            .join("debug")
-            .join("deps");
-        let gccrs_deps_dir = PathBuf::new().join("target").join("debug").join("deps");
+    fn compare_filenames(gccrs_target: &Path, file_type: FileType) -> Result<()> {
+        let rustc_deps_dir = PathBuf::new().join("target").join("debug").join("deps");
+        let gccrs_deps_dir = PathBuf::from(gccrs_target).join("debug").join("deps");
+
+        dbg!(&gccrs_deps_dir);
 
         let rustc_output_file =
             Harness::get_output_filename(rustc_deps_dir.read_dir()?, &file_type)?;
@@ -127,23 +113,23 @@ impl Harness {
     /// correct file name and correct location.
     pub fn check_folder(folder_path: &str, file_type: FileType) -> Result<()> {
         let old_path = env::current_dir()?;
+
         let mut test_dir = PathBuf::from("tests");
         test_dir.push(folder_path);
 
         env::set_current_dir(&test_dir)?;
 
+        // Clean existing artefacts
+        Command::new("cargo").arg("clean").status()?;
+
         // Build the project using rustc
-        Harness::cargo_build(false)?;
+        Harness::cargo_build(false, None)?;
 
         // Copy the rustc target folder to a temporary directory
-        let rustc_target_tmpdir = TempDir::new(&format!("{}-target-rustc", folder_path))?;
-        Harness::copy_folder(
-            PathBuf::from("target").as_path(),
-            rustc_target_tmpdir.path(),
-        )?;
+        let rustc_target_tmpdir = TempDir::new(&format!("{}-target-gccrs", folder_path))?;
 
         // Build the project using gccrs
-        Harness::cargo_build(true)?;
+        Harness::cargo_build(true, Some(&rustc_target_tmpdir))?;
 
         Harness::compare_filenames(rustc_target_tmpdir.path(), file_type)?;
 
