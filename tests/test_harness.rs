@@ -2,16 +2,31 @@ use tempdir::TempDir;
 
 use std::{
     env::{self, join_paths},
+    ffi::{OsStr, OsString},
+    fs::ReadDir,
     io::{Error, ErrorKind, Result},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
 };
+
+// FIXME: Needs to be refactored once we clean up the handling of file extension on
+// the cargo-gccrs side
+/// Compiler output kinds that the test harness can compare
+pub enum FileType {
+    /// Static libraries
+    Static,
+    /// Dynamic libraries
+    Dyn,
+    /// Binary executables
+    Bin,
+}
 
 pub struct Harness;
 
 impl Harness {
     /// Build the project present in the current directory using `rustc` or `gccrs`
     fn cargo_build(use_gccrs: bool) -> Result<()> {
+        Command::new("cargo").arg("clean").status()?;
         let mut cmd = Command::new("cargo");
 
         if use_gccrs {
@@ -44,20 +59,73 @@ impl Harness {
     }
 
     /// Copy a folder to a set destination
-    fn copy_folder(src: &str, dest: &str) -> Result {
+    fn copy_folder(src: &Path, dest: &Path) -> Result<()> {
         Command::new("cp")
             .arg("-r")
             .arg(src)
             .arg(dest)
             .status()
-            .into_result()
+            // FIXME: Turn this into a trait to remove code duplication?
+            .and_then(|s| {
+                if s.success() {
+                    Ok(())
+                } else {
+                    Err(Error::new(
+                        ErrorKind::Other,
+                        "command did not exit successfully",
+                    ))
+                }
+            })
+    }
+
+    fn get_output_filename(dir_iter: ReadDir, file_type: &FileType) -> Result<Option<OsString>> {
+        // FIXME: Wrong on windows
+        let extension = match file_type {
+            FileType::Static => Some(OsString::from("a")),
+            FileType::Dyn => Some(OsString::from("so")),
+            FileType::Bin => None,
+        };
+
+        for dir_entry in dir_iter.into_iter() {
+            let current_path = dir_entry?.path();
+            if current_path.extension() == extension.as_deref() {
+                return Ok(current_path.file_name().map(OsStr::to_owned));
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn compare_filenames(rustc_target: &Path, file_type: FileType) -> Result<()> {
+        let rustc_deps_dir = PathBuf::from(rustc_target)
+            .join("target")
+            .join("debug")
+            .join("deps");
+        let gccrs_deps_dir = PathBuf::new().join("target").join("debug").join("deps");
+
+        let rustc_output_file =
+            Harness::get_output_filename(rustc_deps_dir.read_dir()?, &file_type)?;
+        let gccrs_output_file =
+            Harness::get_output_filename(gccrs_deps_dir.read_dir()?, &file_type)?;
+
+        assert!(
+            rustc_output_file.is_some(),
+            "Couldn't find a file fitting the given type in rustc target"
+        );
+        assert!(
+            gccrs_output_file.is_some(),
+            "Couldn't find a file fitting the given type in gccrs target"
+        );
+        assert_eq!(rustc_output_file, gccrs_output_file);
+
+        Ok(())
     }
 
     /// Runs the folder generic test suite on a give folder. This test suite
     /// makes sure that the project compiles using `rustc` as well as `gccrs`,
     /// before verifying that both compilers output create binaires with the
     /// correct file name and correct location.
-    pub fn check_folder(folder_path: &str) -> Result<()> {
+    pub fn check_folder(folder_path: &str, file_type: FileType) -> Result<()> {
         let old_path = env::current_dir()?;
         let mut test_dir = PathBuf::from("tests");
         test_dir.push(folder_path);
@@ -68,11 +136,16 @@ impl Harness {
         Harness::cargo_build(false)?;
 
         // Copy the rustc target folder to a temporary directory
-        let rustc_target_tmpdir = TempDir::new("target-rustc")?;
-        Harness::copy_folder("target", rustc_target_tmpdir.path().to_str().unwrap())?;
+        let rustc_target_tmpdir = TempDir::new(&format!("{}-target-rustc", folder_path))?;
+        Harness::copy_folder(
+            PathBuf::from("target").as_path(),
+            rustc_target_tmpdir.path(),
+        )?;
 
         // Build the project using gccrs
         Harness::cargo_build(true)?;
+
+        Harness::compare_filenames(rustc_target_tmpdir.path(), file_type)?;
 
         env::set_current_dir(old_path)?;
 
