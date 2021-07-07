@@ -121,3 +121,22 @@ impl Gccrs {
         }
     }
 }
+
+pub fn spawn_as_wrapper() -> Result {
+    // Skip `cargo` and `gccrs` in the invocation. Since we spawn a new cargo command,
+    // `cargo gccrs arg0 arg1` will become `cargo run arg0 arg1`
+    let mut cargo_gccrs = std::process::Command::new("cargo")
+        .env("RUSTC_WRAPPER", "cargo-gccrs")
+        .args(std::env::args().skip(2))
+        .spawn()
+        .map_err(|_| Error::WrapperLaunch)?;
+
+    match cargo_gccrs
+        .wait()
+        .map_err(|_| Error::WrapperExitError)?
+        .success()
+    {
+        true => Ok(()),
+        false => Err(Error::WrapperExitError),
+    }
+}

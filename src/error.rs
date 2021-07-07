@@ -20,6 +20,15 @@ pub enum Error {
     /// IO Error when executing a `gccrs` command
     #[error("IO Error when executing `gccrs`: {0}")]
     CommandError(#[from] IoError),
+    /// Error when invoking `cargo-gccrs`
+    #[error("Error when invoking `cargo-gccrs`")]
+    InvocationError,
+    /// Error when initially launching `cargo-gccrs` as a wrapper to `rustc`
+    #[error("Error when launching `cargo-gccrs` as a `rustc` wrapper")]
+    WrapperLaunch,
+    /// The `cargo-gccrs` process did not complete successfully
+    #[error("`cargo-gccrs` did not complete succesfully")]
+    WrapperExitError,
 }
 
 // If parsing the options using `getopts` fail, then it was because an unhandled argument

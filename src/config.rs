@@ -28,11 +28,6 @@ impl DumpedOption {
     // FIXME: Should we use the convert::From<&str> trait?
     /// Attempt to parse a [`DumpedOption`] from a given input. The input should
     /// correspond to a singular line of the `gccrs.target-options.dump` file
-    ///
-    /// ```
-    /// let os_info = DumpedOption::from_str("unix");
-    /// let t_feature = DumpedOption::from_str("target_feature: \"sse\"");
-    /// ```
     pub fn from_str(input: &str) -> Result<DumpedOption> {
         let invalid_input = Error::InvalidCfgDump;
 
@@ -54,12 +49,6 @@ impl DumpedOption {
     /// `rustc` displays OS information in the same way as gccrs: `<info>`
     /// For target specific options however, `rustc` uses an equal sign and no space between
     /// the key and value. Thus, `target_<0>: <1> becomes `target_<0>=<1>`
-    ///
-    /// ```
-    /// let opt = DumpedOption::from_str("target_feature: \"sse\"").unwrap();
-    ///
-    /// opt.display()
-    /// ```
     pub fn display(&self) {
         match self {
             DumpedOption::OsInfo(s) => println!("{}", s),
@@ -125,7 +114,7 @@ impl GccrsConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::DumpedOption;
 
     // FIXME: Useful for tests but really ugly, keep it?
     macro_rules! s {
