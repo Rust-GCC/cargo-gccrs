@@ -1,16 +1,16 @@
 use anyhow::{anyhow, Result};
-use cargo_gccrs::{spawn_as_wrapper, Gccrs, Error};
+use cargo_gccrs::{Error, Gccrs, Wrapper};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
-    Gccrs::maybe_install().expect("gccrs should be installed");
+    Gccrs::maybe_install()?;
 
-    let first_arg = args.get(1).expect("Invalid arguments");
+    let first_arg = args.get(1).map(String::as_str);
 
-    let res = match first_arg.as_str() {
-        "gccrs" => spawn_as_wrapper(),
-        "rustc" => Gccrs::handle_rust_args(&args),
+    let res = match first_arg {
+        Some("gccrs") => Wrapper::spawn(),
+        Some("rustc") => Gccrs::handle_rust_args(&args),
         _ => Err(Error::InvocationError),
     };
 

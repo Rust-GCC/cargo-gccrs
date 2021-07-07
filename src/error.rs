@@ -23,6 +23,9 @@ pub enum Error {
     /// Error when invoking `cargo-gccrs`
     #[error("Error when invoking `cargo-gccrs`")]
     InvocationError,
+    /// The `gccrs` compiler is not present in your path
+    #[error("`gccrs` must be installed")]
+    InstallationError,
     /// Error when initially launching `cargo-gccrs` as a wrapper to `rustc`
     #[error("Error when launching `cargo-gccrs` as a `rustc` wrapper")]
     WrapperLaunch,
