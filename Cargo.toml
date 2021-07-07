@@ -14,3 +14,5 @@ getopts = "0.2"
 
 [dev-dependencies]
 tempdir = "0.3"
+goblin = "0.4"
+ar = "0.8"
