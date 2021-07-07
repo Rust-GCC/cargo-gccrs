@@ -1,9 +1,10 @@
+use goblin::{elf64::header::ET_DYN, Object};
 use tempdir::TempDir;
 
 use std::{
     env::{self, join_paths},
     ffi::{OsStr, OsString},
-    fs::ReadDir,
+    fs::{File, ReadDir},
     io::{Error, ErrorKind, Result},
     path::{Path, PathBuf},
     process::Command,
@@ -12,6 +13,7 @@ use std::{
 // FIXME: Needs to be refactored once we clean up the handling of file extension on
 // the cargo-gccrs side
 /// Compiler output kinds that the test harness can compare
+#[derive(Debug)]
 pub enum FileType {
     /// Static libraries
     Static,
@@ -65,6 +67,29 @@ impl Harness {
         })
     }
 
+    fn check_archive(file: &Path) -> Result<()> {
+        // For now, check that an archive is not empty. We can add more checks later as
+        // per the functional testing tracking issue #12
+        assert_ne!(ar::Archive::new(File::open(file)?).count_entries()?, 0);
+
+        Ok(())
+    }
+
+    fn check_correct_filetype(file: &Path, expected_type: &FileType) -> Result<()> {
+        let e_type = match expected_type {
+            FileType::Static => return Harness::check_archive(file),
+            FileType::Dyn | FileType::Bin => ET_DYN,
+        };
+
+        let elf_data = std::fs::read(file)?;
+        match Object::parse(&elf_data).unwrap() {
+            Object::Elf(elf) => assert_eq!(elf.header.e_type, e_type),
+            _ => unreachable!("Invalid ELF file: {:?}", file),
+        }
+
+        Ok(())
+    }
+
     fn get_output_filename(dir_iter: ReadDir, file_type: &FileType) -> Result<Option<OsString>> {
         // FIXME: Wrong on windows
         let extension = match file_type {
@@ -76,6 +101,7 @@ impl Harness {
         for dir_entry in dir_iter.into_iter() {
             let current_path = dir_entry?.path();
             if current_path.extension() == extension.as_deref() {
+                Harness::check_correct_filetype(&current_path, file_type)?;
                 return Ok(current_path.file_name().map(OsStr::to_owned));
             }
         }
@@ -83,11 +109,9 @@ impl Harness {
         Ok(None)
     }
 
-    fn compare_filenames(gccrs_target: &Path, file_type: FileType) -> Result<()> {
+    fn compare_output(gccrs_target: &Path, file_type: FileType) -> Result<()> {
         let rustc_deps_dir = PathBuf::new().join("target").join("debug").join("deps");
         let gccrs_deps_dir = PathBuf::from(gccrs_target).join("debug").join("deps");
-
-        dbg!(&gccrs_deps_dir);
 
         let rustc_output_file =
             Harness::get_output_filename(rustc_deps_dir.read_dir()?, &file_type)?;
@@ -131,7 +155,7 @@ impl Harness {
         // Build the project using gccrs
         Harness::cargo_build(true, Some(&rustc_target_tmpdir))?;
 
-        Harness::compare_filenames(rustc_target_tmpdir.path(), file_type)?;
+        Harness::compare_output(rustc_target_tmpdir.path(), file_type)?;
 
         env::set_current_dir(old_path)?;
 
