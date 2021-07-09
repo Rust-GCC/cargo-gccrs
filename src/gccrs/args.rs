@@ -62,7 +62,9 @@ fn format_output_filename(
                 None
             }
         })
-        .collect::<Vec<&str>>()[0];
+        .collect::<Vec<&str>>()
+        .pop()
+        .unwrap_or("");
 
     match crate_type {
         CrateType::Bin => output_file.push(&format!("{}{}", crate_name, extra_filename)),

@@ -1,19 +1,19 @@
 mod test_harness;
 
-use test_harness::Harness;
+use test_harness::{FileType, Harness};
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const TEST_FOLDERS: &[&str] = &["binary_project", "static_lib", "shared_library"];
-
     #[test]
     fn check_project_compilation() {
-        TEST_FOLDERS
-            .iter()
-            .for_each(|f| Harness::check_folder(*f).unwrap());
+        Harness::check_folder("binary_project", FileType::Bin).unwrap();
+        Harness::check_folder("static_lib", FileType::Static).unwrap();
+        Harness::check_folder("shared_library", FileType::Dyn).unwrap();
 
-        assert!(Harness::check_folder("invalid_code").is_err())
+        // FIXME: As of right now, this just fails on rustc compilation which is not what
+        // we want to check
+        assert!(Harness::check_folder("invalid_code", FileType::Bin).is_err())
     }
 }
