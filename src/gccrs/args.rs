@@ -202,7 +202,12 @@ impl GccrsArgs {
             .to_owned();
 
         match self.crate_type {
-            CrateType::Bin => args.append(&mut vec![String::from("-o"), output_file]),
+            CrateType::Bin => args.append(&mut vec![
+                String::from("-o"),
+                output_file,
+                String::from("-fPIE"),
+                String::from("-pie"),
+            ]),
             CrateType::DyLib => args.append(&mut vec![
                 String::from("-fPIC"),
                 String::from("-shared"),
