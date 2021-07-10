@@ -29,14 +29,7 @@ impl Gccrs {
     /// yet. This function is only available in debug mode, not release, in order for
     /// users to be aware of the limitations.
     fn fake_output(s: &str) {
-        if cfg!(release) {
-            unreachable!(
-                "gccrs cannot yet produce the following, expected output: {}",
-                s
-            );
-        } else {
-            println!("{}", s);
-        }
+        println!("{}", s);
     }
 
     fn dump_config() -> CmdResult<ExitStatus> {
