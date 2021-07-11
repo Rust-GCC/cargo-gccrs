@@ -3,8 +3,6 @@
 //! [`Gccrs::dump_config()`] function. This corresponds to invoking gccrs with the
 //! `-frust-dump-target_options` argument.
 
-pub struct GccrsConfig;
-
 use super::{Error, Result};
 
 /// Different kinds of options dumped by `gccrs -frust-dump-target_options`
@@ -68,7 +66,7 @@ impl DumpedOption {
     }
 }
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Display};
 
 impl PartialOrd for DumpedOption {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -93,6 +91,10 @@ impl Ord for DumpedOption {
     }
 }
 
+pub struct GccrsConfig {
+    options: Vec<DumpedOption>
+}
+
 impl GccrsConfig {
     const CONFIG_FILENAME: &'static str = "gccrs.target-options.dump";
 
@@ -109,17 +111,23 @@ impl GccrsConfig {
             .collect()
     }
 
-    /// Display the gccrs target options on stdout, in a format that cargo understands
-    pub fn display() -> Result {
+    /// Create a new instance `GccrsConfig` with a call to the `gccrs` compiler
+    pub fn new() -> Result<GccrsConfig> {
         let lines = GccrsConfig::read_options()?;
         let mut options = GccrsConfig::parse(lines)?;
 
         // Sort the vector according to the syntax printing rules
         options.sort();
 
-        options.iter().for_each(|opt| opt.display());
+        Ok(GccrsConfig {
+            options,
+        })
+    }
 
-        Ok(())
+    // FIXME: Implement Display trait
+    /// Display the gccrs target options on stdout, in a format that cargo understands
+    pub fn display(&self) {
+        self.options.iter().for_each(|opt| opt.display());
     }
 }
 
