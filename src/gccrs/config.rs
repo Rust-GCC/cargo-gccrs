@@ -4,6 +4,8 @@
 //! `-frust-dump-target_options` argument.
 
 use super::{Error, Result};
+use std::cmp::Ordering;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 /// Different kinds of options dumped by `gccrs -frust-dump-target_options`
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -46,27 +48,20 @@ impl DumpedOption {
             _ => Err(invalid_input),
         }
     }
+}
 
-    // FIXME: Should we use the fmt::Display trait?
+impl Display for DumpedOption {
     /// Display a parsed [`DumpedOption`] on stdout according to the format used by `rustc`
     /// `rustc` displays OS information in the same way as gccrs: `<info>`
     /// For target specific options however, `rustc` uses an equal sign and no space between
     /// the key and value. Thus, `target_<0>: <1> becomes `target_<0>=<1>`
-    ///
-    /// ```
-    /// let opt = DumpedOption::from_str("target_feature: \"sse\"").unwrap();
-    ///
-    /// opt.display()
-    /// ```
-    pub fn display(&self) {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            DumpedOption::OsInfo(s) => println!("{}", s),
-            DumpedOption::TargetSpecific(k, v) => println!("{}={}", k, v),
+            DumpedOption::OsInfo(s) => write!(f, "{}", s),
+            DumpedOption::TargetSpecific(k, v) => write!(f, "{}={}", k, v),
         }
     }
 }
-
-use std::{cmp::Ordering, fmt::Display};
 
 impl PartialOrd for DumpedOption {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -92,7 +87,7 @@ impl Ord for DumpedOption {
 }
 
 pub struct GccrsConfig {
-    options: Vec<DumpedOption>
+    options: Vec<DumpedOption>,
 }
 
 impl GccrsConfig {
@@ -119,15 +114,13 @@ impl GccrsConfig {
         // Sort the vector according to the syntax printing rules
         options.sort();
 
-        Ok(GccrsConfig {
-            options,
-        })
+        Ok(GccrsConfig { options })
     }
+}
 
-    // FIXME: Implement Display trait
-    /// Display the gccrs target options on stdout, in a format that cargo understands
-    pub fn display(&self) {
-        self.options.iter().for_each(|opt| opt.display());
+impl Display for GccrsConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        self.options.iter().try_for_each(|opt| write!(f, "{}", opt))
     }
 }
 

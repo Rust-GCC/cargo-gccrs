@@ -77,7 +77,7 @@ impl Gccrs {
         Gccrs::dump_config()?;
         let config = GccrsConfig::new()?;
 
-        config.display();
+        println!("{}", config);
 
         Ok(())
     }
