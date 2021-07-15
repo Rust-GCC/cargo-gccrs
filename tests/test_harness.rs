@@ -100,7 +100,7 @@ impl Harness {
 
         for dir_entry in dir_iter.into_iter() {
             let current_path = dir_entry?.path();
-            if current_path.extension() == extension.as_deref() {
+            if current_path.extension() == extension.as_deref() && current_path.is_file() {
                 Harness::check_correct_filetype(&current_path, file_type)?;
                 return Ok(current_path.file_name().map(OsStr::to_owned));
             }
@@ -109,22 +109,48 @@ impl Harness {
         Ok(None)
     }
 
-    fn compare_output(gccrs_target: &Path, file_type: FileType) -> Result<()> {
+    /// Check that temporary output files (The binaries in target/debug/deps) have the
+    /// same name and type
+    fn check_deps_output(gccrs_target: &Path, file_type: &FileType) -> Result<()> {
         let rustc_deps_dir = PathBuf::new().join("target").join("debug").join("deps");
         let gccrs_deps_dir = PathBuf::from(gccrs_target).join("debug").join("deps");
 
         let rustc_output_file =
-            Harness::get_output_filename(rustc_deps_dir.read_dir()?, &file_type)?;
+            Harness::get_output_filename(rustc_deps_dir.read_dir()?, file_type)?;
         let gccrs_output_file =
-            Harness::get_output_filename(gccrs_deps_dir.read_dir()?, &file_type)?;
+            Harness::get_output_filename(gccrs_deps_dir.read_dir()?, file_type)?;
 
         assert!(
             rustc_output_file.is_some(),
-            "Couldn't find a file fitting the given type in rustc target"
+            "Couldn't find a file fitting the given type in rustc target/debug/deps"
         );
         assert!(
             gccrs_output_file.is_some(),
-            "Couldn't find a file fitting the given type in gccrs target"
+            "Couldn't find a file fitting the given type in gccrs target/debug/deps"
+        );
+        assert_eq!(rustc_output_file, gccrs_output_file);
+
+        Ok(())
+    }
+
+    /// Check that the final output (The binary in target/debug/) has the same name
+    /// and type
+    fn check_final_output(gccrs_target: &Path, file_type: &FileType) -> Result<()> {
+        let rustc_target_dir = PathBuf::new().join("target").join("debug");
+        let gccrs_target_dir = PathBuf::from(gccrs_target).join("debug");
+
+        let rustc_output_file =
+            Harness::get_output_filename(rustc_target_dir.read_dir()?, file_type)?;
+        let gccrs_output_file =
+            Harness::get_output_filename(gccrs_target_dir.read_dir()?, file_type)?;
+
+        assert!(
+            rustc_output_file.is_some(),
+            "Couldn't find a file fitting the given type in rustc target/debug"
+        );
+        assert!(
+            gccrs_output_file.is_some(),
+            "Couldn't find a file fitting the given type in gccrs target/debug"
         );
         assert_eq!(rustc_output_file, gccrs_output_file);
 
@@ -150,12 +176,13 @@ impl Harness {
         Harness::cargo_build(false, None)?;
 
         // Copy the rustc target folder to a temporary directory
-        let rustc_target_tmpdir = TempDir::new(&format!("{}-target-gccrs", folder_path))?;
+        let gccrs_target_tmpdir = TempDir::new(&format!("{}-target-gccrs", folder_path))?;
 
         // Build the project using gccrs
-        Harness::cargo_build(true, Some(&rustc_target_tmpdir))?;
+        Harness::cargo_build(true, Some(&gccrs_target_tmpdir))?;
 
-        Harness::compare_output(rustc_target_tmpdir.path(), file_type)?;
+        Harness::check_deps_output(gccrs_target_tmpdir.path(), &file_type)?;
+        Harness::check_final_output(gccrs_target_tmpdir.path(), &file_type)?;
 
         env::set_current_dir(old_path)?;
 
