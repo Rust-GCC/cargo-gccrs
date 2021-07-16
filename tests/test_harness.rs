@@ -100,7 +100,8 @@ impl Harness {
 
         for dir_entry in dir_iter.into_iter() {
             let current_path = dir_entry?.path();
-            if current_path.extension() == extension.as_deref() && current_path.is_file() {
+            // https://rust-lang.github.io/rust-clippy/master/index.html#filetype_is_file
+            if current_path.extension() == extension.as_deref() && !current_path.is_dir() {
                 Harness::check_correct_filetype(&current_path, file_type)?;
                 return Ok(current_path.file_name().map(OsStr::to_owned));
             }
