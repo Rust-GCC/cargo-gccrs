@@ -4,10 +4,12 @@
 mod args;
 mod config;
 mod error;
+mod rustc_options;
 
 use args::GccrsArgs;
 use config::GccrsConfig;
 use error::Error;
+use rustc_options::RustcOptions;
 
 use std::process::{Command, ExitStatus, Stdio};
 
