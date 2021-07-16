@@ -3,11 +3,13 @@
 
 mod args;
 mod config;
+mod env_args;
 mod error;
 mod rustc_options;
 
-use args::GccrsArgs;
+use args::{CrateType, GccrsArgs};
 use config::GccrsConfig;
+use env_args::EnvArgs;
 use error::Error;
 use rustc_options::RustcOptions;
 
@@ -87,8 +89,12 @@ impl Gccrs {
     fn compile(args: &[String]) -> Result {
         let gccrs_args = GccrsArgs::from_rustc_args(args)?;
 
-        for arg_set in gccrs_args.into_iter() {
-            let exit_status = Gccrs::spawn_with_args(&arg_set.as_args())?;
+        for mut arg_set in gccrs_args.into_iter() {
+            if arg_set.crate_type() == CrateType::StaticLib {
+                arg_set.set_callback(&Gccrs::generate_static_lib);
+            }
+
+            let exit_status = Gccrs::spawn_with_args(&arg_set.as_args()?)?;
             if !exit_status.success() {
                 return Err(Error::CompileError);
             }
@@ -97,6 +103,27 @@ impl Gccrs {
                 callback(&arg_set)?
             }
         }
+
+        Ok(())
+    }
+
+    fn generate_static_lib(args: &GccrsArgs) -> Result {
+        let output_file = args
+            .output_file()
+            .to_str()
+            .expect("Cannot handle non-unicode filenames yet");
+
+        let mut ar_args = vec![
+            String::from("rcs"), // Create the archive and add the files to it
+            output_file.to_owned(),
+            args.object_file_name().into_os_string().into_string()?,
+        ];
+
+        if let Some(mut extra_ar_args) = EnvArgs::Ar.as_args() {
+            ar_args.append(&mut extra_ar_args);
+        }
+
+        Command::new("ar").args(ar_args).status()?;
 
         Ok(())
     }

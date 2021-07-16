@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use getopts::Matches;
 
-use super::{Error, Result, RustcOptions, EnvArgs};
+use super::{EnvArgs, Error, Result, RustcOptions};
 
 /// Crate types supported by `gccrs`
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -161,7 +161,7 @@ impl GccrsArgs {
                 String::from("-o"),
                 self.object_file_name().into_os_string().into_string()?,
             ]),
-            CrateType::Unknown => {},
+            CrateType::Unknown => {}
         }
 
         Ok(args)
