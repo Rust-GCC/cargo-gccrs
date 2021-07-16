@@ -3,9 +3,9 @@
 
 use std::{env, path::PathBuf, process::Command};
 
-use getopts::{Matches, Options};
+use getopts::Matches;
 
-use super::{Error, Result};
+use super::{Error, Result, RustcOptions};
 
 /// Crate types supported by `gccrs`
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -96,31 +96,6 @@ pub struct GccrsArgs {
 }
 
 impl GccrsArgs {
-    fn generate_parser() -> Options {
-        let mut options = Options::new();
-        options.optopt("", "crate-name", "Name of the crate to compile", "NAME");
-        options.optopt("", "edition", "Rust edition to use", "YEAR");
-        options.optopt("", "error-format", "Requested error format", "EXTENSION");
-        options.optopt(
-            "",
-            "out-dir",
-            "Directory in which to output generated files",
-            "DIR",
-        );
-        options.optopt("", "emit", "Requested output to emit", "KIND");
-        options.optopt("", "json", "JSON Rendering type", "RENDER");
-        options.optmulti("C", "", "Extra compiler options", "OPTION[=VALUE]");
-        options.optmulti(
-            "L",
-            "",
-            "Add a directory to the library's search path",
-            "KIND[=PATH]",
-        );
-        options.optmulti("", "crate-type", "Type of binary to output", "TYPE");
-
-        options
-    }
-
     fn generate_static_lib(args: &GccrsArgs) -> Result {
         let output_file = args
             .output_file
@@ -175,10 +150,7 @@ impl GccrsArgs {
 
     /// Get the corresponding `gccrs` argument from a given `rustc` argument
     pub fn from_rustc_args(rustc_args: &[String]) -> Result<Vec<GccrsArgs>> {
-        let options = GccrsArgs::generate_parser();
-
-        // Parse arguments, skipping `cargo-gccrs` and `rustc` in the invocation
-        let matches = options.parse(&rustc_args[2..])?;
+        let matches = RustcOptions::new().parse(rustc_args)?;
 
         matches
             .opt_strs("crate-type")
