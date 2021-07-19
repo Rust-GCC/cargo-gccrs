@@ -30,6 +30,13 @@ impl RustcOptions {
             "KIND[=PATH]",
         );
         options.optmulti("", "crate-type", "Type of binary to output", "TYPE");
+        options.optmulti(
+            "",
+            "cap-lints",
+            "Set the most restrictive lint level",
+            "LEVEL",
+        );
+        options.optmulti("", "cfg", "Configure the compilation environment", "SPEC");
 
         RustcOptions { options }
     }
