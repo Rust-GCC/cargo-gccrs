@@ -75,7 +75,11 @@ impl Gccrs {
         Gccrs::fake_output(r#"lib___.so"#);
 
         Gccrs::dump_config()?;
-        GccrsConfig::display()
+        let config = GccrsConfig::new()?;
+
+        println!("{}", config);
+
+        Ok(())
     }
 
     fn spawn_with_args(args: &[String]) -> CmdResult<ExitStatus> {
