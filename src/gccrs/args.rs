@@ -1,11 +1,85 @@
 //! This module interprets arguments given to `rustc` and transforms them into valid
 //! arguments for `gccrs`.
 
+use std::convert::TryFrom;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use getopts::Matches;
 
 use super::{EnvArgs, Error, Result, RustcOptions};
+
+/// A collection containing multiple instances of `GccrsArgs`. This is necessary in order
+/// to circumvent the fact that `rustc` can currently generate multiple types of binaries
+/// with a single invokation.
+///
+/// For example,
+/// `rustc --crate-type=static --crate-type=dyn --crate-type=bin src/<file>.rs` will attempt
+/// to generate an executable, a dynamic library and a static one.
+///
+/// When using `gccrs` to compile things, we must also take into account what `gcc` can
+/// and cannot do. And `gcc` cannot currently generate multiple outputs in a single invokation.
+///
+/// Let's look at the previous example:
+///
+/// * To generate an executable from `src/<file>.rs`,
+/// we'd need to do the following: `gccrs src/<file>.rs` (with `-o <file>` if we don't
+/// want an executable named a.out, but that's not important).
+///
+/// * For a shared library, we need to add the `-shared` flag. On top of this, `rustc`
+/// generates libraries named `lib<name>.[so|a]` on Linux, while `gcc` will happily generate
+/// a shared library without any extension or prefix. This amounts to the following command:
+/// `gccrs -shared src/<file>.rs -o lib<file>.so`.
+///
+/// * Finally, `gcc` is not able to generate a static library at all. We *need* to use a
+/// different command, `ar`, in order to bundle up object files previously created by
+/// `gcc`. Therefore, we actually need *two* commands:
+/// `gccrs -c src/<file>.rs && ar csr src/<file>.o`
+///
+/// Multiple flags, such as `shared`, conflict with the generation of other binaries. On
+/// top of that, we cannot use the `-o` option precisely enough to control the output name
+/// based on the binary file produced.
+///
+/// Therefore, we need to wrap an unknown amount of sets of `gccrs` arguments in order to
+/// mimic a single `rustc` invokation. Later on, we need to iterate over those sets and
+/// spawn a new `gccrs` command for each of them.
+pub struct GccrsArgsCollection {
+    args_set: Vec<GccrsArgs>,
+}
+
+/// Get the corresponding set of `gccrs` arguments from a single set of `rustc` arguments
+impl TryFrom<&[String]> for GccrsArgsCollection {
+    type Error = Error;
+
+    fn try_from(rustc_args: &[String]) -> Result<GccrsArgsCollection> {
+        let matches = RustcOptions::new().parse(rustc_args)?;
+
+        let args_set: Result<Vec<GccrsArgs>> = matches
+            .opt_strs("crate-type")
+            .iter()
+            .map(|type_str| CrateType::from(type_str.as_str()))
+            .map(|crate_type| format_output_filename(&matches, crate_type))
+            .map(|result_tuple| {
+                result_tuple.map(|(output_file, crate_type)| {
+                    GccrsArgs::new(&matches.free, crate_type, output_file)
+                })
+            })
+            .collect();
+
+        Ok(GccrsArgsCollection {
+            args_set: args_set?,
+        })
+    }
+}
+
+/// Implement deref on the collection so we can easily iterate on it
+impl Deref for GccrsArgsCollection {
+    type Target = Vec<GccrsArgs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.args_set
+    }
+}
 
 /// Crate types supported by `gccrs`
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -87,7 +161,7 @@ fn format_output_filename(
 }
 
 /// Structure used to represent arguments passed to `gccrs`. Convert them from `rustc`
-/// arguments using [`GccrsArg::from_rustc_arg`]
+/// arguments using [`GccrsArgs::from_rustc_arg`]
 pub struct GccrsArgs {
     source_files: Vec<String>,
     crate_type: CrateType,
@@ -116,23 +190,6 @@ impl GccrsArgs {
     /// Get a reference to the set of arguments' type of binary produced
     pub fn crate_type(&self) -> CrateType {
         self.crate_type
-    }
-
-    /// Get the corresponding `gccrs` argument from a given `rustc` argument
-    pub fn from_rustc_args(rustc_args: &[String]) -> Result<Vec<GccrsArgs>> {
-        let matches = RustcOptions::new().parse(rustc_args)?;
-
-        matches
-            .opt_strs("crate-type")
-            .iter()
-            .map(|type_str| CrateType::from(type_str.as_str()))
-            .map(|crate_type| format_output_filename(&matches, crate_type))
-            .map(|result_tuple| {
-                result_tuple.map(|(output_file, crate_type)| {
-                    GccrsArgs::new(&matches.free, crate_type, output_file)
-                })
-            })
-            .collect()
     }
 
     /// Create arguments usable when spawning a process from an instance of [`GccrsArgs`]

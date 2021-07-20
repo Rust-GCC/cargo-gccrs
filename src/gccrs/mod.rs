@@ -7,12 +7,13 @@ mod env_args;
 mod error;
 mod rustc_options;
 
-use args::{CrateType, GccrsArgs};
+use args::{CrateType, GccrsArgs, GccrsArgsCollection};
 use config::GccrsConfig;
 use env_args::EnvArgs;
 use error::Error;
 use rustc_options::RustcOptions;
 
+use std::convert::TryFrom;
 use std::process::{Command, ExitStatus, Stdio};
 
 pub struct Gccrs;
@@ -113,7 +114,7 @@ impl Gccrs {
     }
 
     fn translate_and_compile(args: &[String]) -> Result {
-        let gccrs_args = GccrsArgs::from_rustc_args(args)?;
+        let gccrs_args = GccrsArgsCollection::try_from(args)?;
 
         for arg_set in gccrs_args.iter() {
             Gccrs::compile(arg_set)?;
