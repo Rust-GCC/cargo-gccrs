@@ -36,8 +36,6 @@ impl RustcOptions {
 
     pub fn parse(&self, args: &[String]) -> Result<Matches> {
         // Parse arguments, skipping `cargo-gccrs` and `rustc` in the invocation
-        let matches = self.options.parse(&args[2..])?;
-
-        Ok(matches)
+        Ok(self.options.parse(&args[2..])?)
     }
 }
