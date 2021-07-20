@@ -5,13 +5,13 @@ mod args;
 mod config;
 mod env_args;
 mod error;
-mod rustc_options;
+mod rustc_args;
 
-use args::{CrateType, GccrsArgs, GccrsArgsCollection};
+use args::{Args, ArgsCollection, CrateType};
 use config::GccrsConfig;
 use env_args::EnvArgs;
 use error::Error;
-use rustc_options::RustcOptions;
+use rustc_args::RustcArgs;
 
 use std::convert::TryFrom;
 use std::process::{Command, ExitStatus, Stdio};
@@ -92,7 +92,7 @@ impl Gccrs {
     }
 
     /// Spawn a `gccrs` command with arguments extracted from a `rustc` invokation
-    fn compile(gccrs_args: &GccrsArgs) -> Result {
+    fn compile(gccrs_args: &Args) -> Result {
         let exit_status = Gccrs::spawn_with_args(&gccrs_args.as_args()?)?;
 
         match exit_status.success() {
@@ -103,7 +103,7 @@ impl Gccrs {
 
     /// Execute a callback if necessary, based on the different options used to build
     /// the `gccrs` arguments
-    fn maybe_callback(gccrs_args: &GccrsArgs) -> Result {
+    fn maybe_callback(gccrs_args: &Args) -> Result {
         // If we are ordered to generate a static library, call `ar` after compiling
         // the object files
         if gccrs_args.crate_type() == CrateType::StaticLib {
@@ -114,7 +114,7 @@ impl Gccrs {
     }
 
     fn translate_and_compile(args: &[String]) -> Result {
-        let gccrs_args = GccrsArgsCollection::try_from(args)?;
+        let gccrs_args = ArgsCollection::try_from(args)?;
 
         for arg_set in gccrs_args.iter() {
             Gccrs::compile(arg_set)?;
@@ -124,7 +124,7 @@ impl Gccrs {
         Ok(())
     }
 
-    fn generate_static_lib(args: &GccrsArgs) -> Result {
+    fn generate_static_lib(args: &Args) -> Result {
         let output_file = args
             .output_file()
             .to_str()

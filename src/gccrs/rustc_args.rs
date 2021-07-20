@@ -3,13 +3,13 @@ use super::Result;
 /// taken from `rustc`'s implementation
 use getopts::{Matches, Options};
 
-pub struct RustcOptions {
+pub struct RustcArgs {
     options: Options,
 }
 
-impl RustcOptions {
+impl RustcArgs {
     /// Generate a new options parser according to `rustc`'s command line options
-    pub fn new() -> RustcOptions {
+    pub fn new() -> RustcArgs {
         let mut options = Options::new();
         options.optopt("", "crate-name", "Name of the crate to compile", "NAME");
         options.optopt("", "edition", "Rust edition to use", "YEAR");
@@ -31,7 +31,7 @@ impl RustcOptions {
         );
         options.optmulti("", "crate-type", "Type of binary to output", "TYPE");
 
-        RustcOptions { options }
+        RustcArgs { options }
     }
 
     pub fn parse(&self, args: &[String]) -> Result<Matches> {

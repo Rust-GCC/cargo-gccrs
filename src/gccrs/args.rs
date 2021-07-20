@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 
 use getopts::Matches;
 
-use super::{EnvArgs, Error, Result, RustcOptions};
+use super::{EnvArgs, Error, Result, RustcArgs};
 
-/// A collection containing multiple instances of `GccrsArgs`. This is necessary in order
+/// A collection containing multiple instances of `Args`. This is necessary in order
 /// to circumvent the fact that `rustc` can currently generate multiple types of binaries
 /// with a single invokation.
 ///
@@ -43,38 +43,38 @@ use super::{EnvArgs, Error, Result, RustcOptions};
 /// Therefore, we need to wrap an unknown amount of sets of `gccrs` arguments in order to
 /// mimic a single `rustc` invokation. Later on, we need to iterate over those sets and
 /// spawn a new `gccrs` command for each of them.
-pub struct GccrsArgsCollection {
-    args_set: Vec<GccrsArgs>,
+pub struct ArgsCollection {
+    args_set: Vec<Args>,
 }
 
 /// Get the corresponding set of `gccrs` arguments from a single set of `rustc` arguments
-impl TryFrom<&[String]> for GccrsArgsCollection {
+impl TryFrom<&[String]> for ArgsCollection {
     type Error = Error;
 
-    fn try_from(rustc_args: &[String]) -> Result<GccrsArgsCollection> {
-        let matches = RustcOptions::new().parse(rustc_args)?;
+    fn try_from(rustc_args: &[String]) -> Result<ArgsCollection> {
+        let matches = RustcArgs::new().parse(rustc_args)?;
 
-        let args_set: Result<Vec<GccrsArgs>> = matches
+        let args_set: Result<Vec<Args>> = matches
             .opt_strs("crate-type")
             .iter()
             .map(|type_str| CrateType::from(type_str.as_str()))
             .map(|crate_type| format_output_filename(&matches, crate_type))
             .map(|result_tuple| {
                 result_tuple.map(|(output_file, crate_type)| {
-                    GccrsArgs::new(&matches.free, crate_type, output_file)
+                    Args::new(&matches.free, crate_type, output_file)
                 })
             })
             .collect();
 
-        Ok(GccrsArgsCollection {
+        Ok(ArgsCollection {
             args_set: args_set?,
         })
     }
 }
 
 /// Implement deref on the collection so we can easily iterate on it
-impl Deref for GccrsArgsCollection {
-    type Target = Vec<GccrsArgs>;
+impl Deref for ArgsCollection {
+    type Target = Vec<Args>;
 
     fn deref(&self) -> &Self::Target {
         &self.args_set
@@ -161,16 +161,16 @@ fn format_output_filename(
 }
 
 /// Structure used to represent arguments passed to `gccrs`. Convert them from `rustc`
-/// arguments using [`GccrsArgs::from_rustc_arg`]
-pub struct GccrsArgs {
+/// arguments using [`Args::from_rustc_arg`]
+pub struct Args {
     source_files: Vec<String>,
     crate_type: CrateType,
     output_file: PathBuf,
 }
 
-impl GccrsArgs {
-    fn new(source_files: &[String], crate_type: CrateType, output_file: PathBuf) -> GccrsArgs {
-        GccrsArgs {
+impl Args {
+    fn new(source_files: &[String], crate_type: CrateType, output_file: PathBuf) -> Args {
+        Args {
             source_files: Vec::from(source_files),
             crate_type,
             output_file,
@@ -192,7 +192,7 @@ impl GccrsArgs {
         self.crate_type
     }
 
-    /// Create arguments usable when spawning a process from an instance of [`GccrsArgs`]
+    /// Create arguments usable when spawning a process from an instance of [`Args`]
     pub fn as_args(&self) -> Result<Vec<String>> {
         // `rustc` generates position independant code
         let mut args = vec![String::from("-fPIE"), String::from("-pie")];
