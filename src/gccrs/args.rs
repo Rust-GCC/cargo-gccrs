@@ -92,7 +92,6 @@ pub struct GccrsArgs {
     source_files: Vec<String>,
     crate_type: CrateType,
     output_file: PathBuf,
-    callback: Option<&'static dyn Fn(&GccrsArgs) -> Result>,
 }
 
 impl GccrsArgs {
@@ -101,7 +100,6 @@ impl GccrsArgs {
             source_files: Vec::from(source_files),
             crate_type,
             output_file,
-            callback: None,
         }
     }
 
@@ -115,20 +113,9 @@ impl GccrsArgs {
         &self.output_file
     }
 
-    /// Set the callback of an argument set
-    pub fn set_callback(&mut self, function: &'static dyn Fn(&GccrsArgs) -> Result) {
-        self.callback = Some(function);
-    }
-
     /// Get a reference to the set of arguments' type of binary produced
     pub fn crate_type(&self) -> CrateType {
         self.crate_type
-    }
-
-    // Execute an argument set's callback if present. Returns Ok if no callback was
-    // present
-    pub fn callback(&self) -> Option<&'static dyn Fn(&GccrsArgs) -> Result> {
-        self.callback
     }
 
     /// Get the corresponding `gccrs` argument from a given `rustc` argument

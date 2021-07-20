@@ -90,22 +90,34 @@ impl Gccrs {
         Command::new("gccrs").args(args).status()
     }
 
-    fn compile(args: &[String]) -> Result {
+    /// Spawn a `gccrs` command with arguments extracted from a `rustc` invokation
+    fn compile(gccrs_args: &GccrsArgs) -> Result {
+        let exit_status = Gccrs::spawn_with_args(&gccrs_args.as_args()?)?;
+
+        match exit_status.success() {
+            false => Err(Error::CompileError),
+            true => Ok(()),
+        }
+    }
+
+    /// Execute a callback if necessary, based on the different options used to build
+    /// the `gccrs` arguments
+    fn maybe_callback(gccrs_args: &GccrsArgs) -> Result {
+        // If we are ordered to generate a static library, call `ar` after compiling
+        // the object files
+        if gccrs_args.crate_type() == CrateType::StaticLib {
+            Gccrs::generate_static_lib(gccrs_args)?;
+        }
+
+        Ok(())
+    }
+
+    fn translate_and_compile(args: &[String]) -> Result {
         let gccrs_args = GccrsArgs::from_rustc_args(args)?;
 
-        for mut arg_set in gccrs_args.into_iter() {
-            if arg_set.crate_type() == CrateType::StaticLib {
-                arg_set.set_callback(&Gccrs::generate_static_lib);
-            }
-
-            let exit_status = Gccrs::spawn_with_args(&arg_set.as_args()?)?;
-            if !exit_status.success() {
-                return Err(Error::CompileError);
-            }
-
-            if let Some(callback) = arg_set.callback() {
-                callback(&arg_set)?
-            }
+        for arg_set in gccrs_args.iter() {
+            Gccrs::compile(arg_set)?;
+            Gccrs::maybe_callback(arg_set)?;
         }
 
         Ok(())
@@ -143,7 +155,7 @@ impl Gccrs {
             // configuration option in our case, since we are compiling a rust project
             // with files and crates
             Some("-") => Gccrs::cfg_print(),
-            _ => Gccrs::compile(args),
+            _ => Gccrs::translate_and_compile(args),
         }
     }
 }
