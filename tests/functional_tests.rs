@@ -14,6 +14,10 @@ mod tests {
 
         // FIXME: As of right now, this just fails on rustc compilation which is not what
         // we want to check
-        assert!(Harness::check_folder("invalid_code", FileType::Bin).is_err())
+        assert!(Harness::check_folder("invalid_code", FileType::Bin).is_err());
+
+        std::env::set_var("GCCRS_EXTRA_ARGS", "-Werror");
+        assert!(Harness::check_folder("warning_project", FileType::Bin).is_err());
+        std::env::set_var("GCCRS_EXTRA_ARGS", "");
     }
 }
