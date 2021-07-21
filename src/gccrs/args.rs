@@ -33,6 +33,14 @@ impl<'a> From<&'a str> for CrateType {
     }
 }
 
+/// Add `.tmp.o` to the expected output filename. Since we will already have produced the
+/// expected filename at this point, and we are likely currently converting it to a String
+/// to spawn as an argument, this function can avoid taking a Path as parameter and returning
+/// a PathBuf.
+fn object_file_name(output_file: &str) -> String {
+    format!("{}.tmp.o", output_file)
+}
+
 fn format_output_filename(
     matches: &Matches,
     crate_type: CrateType,
@@ -76,14 +84,6 @@ fn format_output_filename(
     }
 
     Ok((output_file, crate_type))
-}
-
-/// Add `.tmp.o` to the expected output filename. Since we will already have produced the
-/// expected filename at this point, and we are likely currently converting it to a String
-/// to spawn as an argument, this function can avoid taking a Path as parameter and returning
-/// a PathBuf.
-fn object_file_name(output_file: &str) -> String {
-    format!("{}.tmp.o", output_file)
 }
 
 /// Structure used to represent arguments passed to `gccrs`. Convert them from `rustc`
@@ -205,7 +205,9 @@ impl GccrsArgs {
 
     /// Create arguments usable when spawning a process from an instance of [`GccrsArgs`]
     pub fn as_args(&self) -> Vec<String> {
-        let mut args = self.source_files.clone();
+        // `rustc` generates position independant code
+        let mut args = vec![String::from("-fPIE"), String::from("-pie")];
+        args.append(&mut self.source_files.clone());
 
         if let Some(mut user_compiler_args) =
             GccrsArgs::env_extra_args(GccrsArgs::COMPILER_ENV_ARGS)
@@ -219,27 +221,18 @@ impl GccrsArgs {
             .output_file
             .to_str()
             .expect("Cannot handle non-unicode filenames yet")
-            .to_owned();
+            .to_string();
 
         match self.crate_type {
-            CrateType::Bin => args.append(&mut vec![
-                String::from("-o"),
-                output_file,
-                String::from("-fPIE"),
-                String::from("-pie"),
-            ]),
+            CrateType::Bin => args.append(&mut vec![String::from("-o"), output_file]),
             CrateType::DyLib => args.append(&mut vec![
-                String::from("-fPIC"),
                 String::from("-shared"),
                 String::from("-o"),
                 output_file,
             ]),
-            // FIXME: Maybe don't format temporary object file like this?
             CrateType::StaticLib => args.append(&mut vec![
                 String::from("-c"),
                 String::from("-o"),
-                // We can unwrap here since converting the PathBuf to string at the beginning
-                // of the function would have thrown an error on a non UTF-8 output_file
                 object_file_name(&output_file),
             ]),
             _ => {}
