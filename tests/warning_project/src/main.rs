@@ -1,3 +1,3 @@
 fn main() {
-    let a = 15;
+    let unused = 1;
 }
