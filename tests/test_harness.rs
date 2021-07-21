@@ -1,4 +1,5 @@
 use goblin::{elf64::header::ET_DYN, Object};
+use is_executable::IsExecutable;
 use tempdir::TempDir;
 
 use std::{
@@ -92,16 +93,16 @@ impl Harness {
 
     fn get_output_filename(dir_iter: ReadDir, file_type: &FileType) -> Result<Option<OsString>> {
         // FIXME: Wrong on windows
-        let extension = match file_type {
-            FileType::Static => Some(OsString::from("a")),
-            FileType::Dyn => Some(OsString::from("so")),
-            FileType::Bin => None,
+        let predicate = match file_type {
+            FileType::Static => |p: &Path| p.extension() == Some(OsString::from("a")).as_deref(),
+            FileType::Dyn => |p: &Path| p.extension() == Some(OsString::from("so")).as_deref(),
+            FileType::Bin => |p: &Path| p.is_executable(),
         };
 
         for dir_entry in dir_iter.into_iter() {
             let current_path = dir_entry?.path();
             // https://rust-lang.github.io/rust-clippy/master/index.html#filetype_is_file
-            if current_path.extension() == extension.as_deref() && !current_path.is_dir() {
+            if predicate(&current_path) && !current_path.is_dir() {
                 Harness::check_correct_filetype(&current_path, file_type)?;
                 return Ok(current_path.file_name().map(OsStr::to_owned));
             }
