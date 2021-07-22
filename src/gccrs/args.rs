@@ -171,7 +171,10 @@ impl Args {
 
     /// Add `.tmp.o` to the expected output filename.
     pub fn object_file_name(&self) -> PathBuf {
-        self.output_file.clone().join(".tmp.o")
+        let mut tmp_object_path = self.output_file.clone();
+        tmp_object_path.set_extension("tmp_object.o");
+
+        tmp_object_path
     }
 
     /// Get a reference to the set of arguments' output file path
