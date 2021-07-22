@@ -114,7 +114,8 @@ impl Gccrs {
     }
 
     fn translate_and_compile(args: &[String]) -> Result {
-        let gccrs_args = ArgsCollection::try_from(args)?;
+        let rustc_args = RustcArgs::try_from(args)?;
+        let gccrs_args = ArgsCollection::try_from(&rustc_args)?;
 
         for arg_set in gccrs_args.iter() {
             Gccrs::compile(arg_set)?;

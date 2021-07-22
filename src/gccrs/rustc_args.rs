@@ -1,15 +1,18 @@
-use super::Result;
-/// This module implements `rustc`'s options parser. Ultimately, this should be directly
-/// taken from `rustc`'s implementation
+//! This module implements `rustc`'s options parser. Ultimately, this should be directly
+//! taken from `rustc`'s implementation
+
+use super::{Error, Result};
 use getopts::{Matches, Options};
+use std::convert::TryFrom;
 
 pub struct RustcArgs {
-    options: Options,
+    matches: Matches,
 }
 
-impl RustcArgs {
-    /// Generate a new options parser according to `rustc`'s command line options
-    pub fn new() -> RustcArgs {
+impl TryFrom<&[String]> for RustcArgs {
+    type Error = Error;
+
+    fn try_from(args: &[String]) -> Result<Self> {
         let mut options = Options::new();
         options.optopt("", "crate-name", "Name of the crate to compile", "NAME");
         options.optopt("", "edition", "Rust edition to use", "YEAR");
@@ -38,11 +41,15 @@ impl RustcArgs {
         );
         options.optmulti("", "cfg", "Configure the compilation environment", "SPEC");
 
-        RustcArgs { options }
-    }
-
-    pub fn parse(&self, args: &[String]) -> Result<Matches> {
         // Parse arguments, skipping `cargo-gccrs` and `rustc` in the invocation
-        Ok(self.options.parse(&args[2..])?)
+        Ok(RustcArgs {
+            matches: options.parse(&args[2..])?,
+        })
+    }
+}
+
+impl RustcArgs {
+    pub fn matches(&self) -> &Matches {
+        &self.matches
     }
 }

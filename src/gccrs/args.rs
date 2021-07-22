@@ -48,11 +48,11 @@ pub struct ArgsCollection {
 }
 
 /// Get the corresponding set of `gccrs` arguments from a single set of `rustc` arguments
-impl TryFrom<&[String]> for ArgsCollection {
+impl TryFrom<&RustcArgs> for ArgsCollection {
     type Error = Error;
 
-    fn try_from(rustc_args: &[String]) -> Result<ArgsCollection> {
-        let matches = RustcArgs::new().parse(rustc_args)?;
+    fn try_from(rustc_args: &RustcArgs) -> Result<ArgsCollection> {
+        let matches = rustc_args.matches();
 
         let args_set: Result<Vec<Args>> = matches
             .opt_strs("crate-type")
@@ -105,14 +105,6 @@ impl<'a> From<&'a str> for CrateType {
             _ => CrateType::Unknown,
         }
     }
-}
-
-/// Add `.tmp.o` to the expected output filename. Since we will already have produced the
-/// expected filename at this point, and we are likely currently converting it to a String
-/// to spawn as an argument, this function can avoid taking a Path as parameter and returning
-/// a PathBuf.
-fn object_file_name(output_file: &str) -> String {
-    format!("{}.tmp.o", output_file)
 }
 
 fn format_output_filename(
