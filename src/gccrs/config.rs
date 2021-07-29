@@ -69,7 +69,7 @@ impl PartialOrd for DumpedOption {
     }
 }
 
-/// Sort DumpedOptions based on syntax printing rules. `rustc` prints target options in
+/// Sort DumpedArgs based on syntax printing rules. `rustc` prints target options in
 /// alphabetical order, before printing OS information
 impl Ord for DumpedOption {
     fn cmp(&self, other: &Self) -> Ordering {

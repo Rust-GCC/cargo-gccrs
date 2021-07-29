@@ -3,12 +3,17 @@
 
 mod args;
 mod config;
+mod env_args;
 mod error;
+mod rustc_args;
 
-use args::GccrsArgs;
+use args::{Args, ArgsCollection, CrateType};
 use config::GccrsConfig;
+use env_args::EnvArgs;
 use error::Error;
+use rustc_args::RustcArgs;
 
+use std::convert::TryFrom;
 use std::process::{Command, ExitStatus, Stdio};
 
 pub struct Gccrs;
@@ -86,19 +91,57 @@ impl Gccrs {
         Command::new("gccrs").args(args).status()
     }
 
-    fn compile(args: &[String]) -> Result {
-        let gccrs_args = GccrsArgs::from_rustc_args(args)?;
+    /// Spawn a `gccrs` command with arguments extracted from a `rustc` invokation
+    fn compile(gccrs_args: &Args) -> Result {
+        let exit_status = Gccrs::spawn_with_args(&gccrs_args.as_args()?)?;
 
-        for arg_set in gccrs_args.into_iter() {
-            let exit_status = Gccrs::spawn_with_args(&arg_set.as_args())?;
-            if !exit_status.success() {
-                return Err(Error::CompileError);
-            }
-
-            if let Some(callback) = arg_set.callback() {
-                callback(&arg_set)?
-            }
+        match exit_status.success() {
+            false => Err(Error::CompileError),
+            true => Ok(()),
         }
+    }
+
+    /// Execute a callback if necessary, based on the different options used to build
+    /// the `gccrs` arguments
+    fn maybe_callback(gccrs_args: &Args) -> Result {
+        // If we are ordered to generate a static library, call `ar` after compiling
+        // the object files
+        if gccrs_args.crate_type() == CrateType::StaticLib {
+            Gccrs::generate_static_lib(gccrs_args)?;
+        }
+
+        Ok(())
+    }
+
+    fn translate_and_compile(args: &[String]) -> Result {
+        let rustc_args = RustcArgs::try_from(args)?;
+        let gccrs_args = ArgsCollection::try_from(&rustc_args)?;
+
+        for arg_set in gccrs_args.iter() {
+            Gccrs::compile(arg_set)?;
+            Gccrs::maybe_callback(arg_set)?;
+        }
+
+        Ok(())
+    }
+
+    fn generate_static_lib(args: &Args) -> Result {
+        let output_file = args
+            .output_file()
+            .to_str()
+            .expect("Cannot handle non-unicode filenames yet");
+
+        let mut ar_args = vec![
+            String::from("rcs"), // Create the archive and add the files to it
+            output_file.to_owned(),
+            args.object_file_name().into_os_string().into_string()?,
+        ];
+
+        if let Some(mut extra_ar_args) = EnvArgs::Ar.as_args() {
+            ar_args.append(&mut extra_ar_args);
+        }
+
+        Command::new("ar").args(ar_args).status()?;
 
         Ok(())
     }
@@ -114,7 +157,7 @@ impl Gccrs {
             // configuration option in our case, since we are compiling a rust project
             // with files and crates
             Some("-") => Gccrs::cfg_print(),
-            _ => Gccrs::compile(args),
+            _ => Gccrs::translate_and_compile(args),
         }
     }
 }
