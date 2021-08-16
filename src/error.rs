@@ -1,5 +1,6 @@
 //! Error type of the `gccrs` abstraction
 
+use std::ffi::OsString;
 use std::io::Error as IoError;
 
 use getopts::Fail;
@@ -20,6 +21,9 @@ pub enum Error {
     /// IO Error when executing a `gccrs` command
     #[error("IO Error when executing `gccrs`: {0}")]
     CommandError(#[from] IoError),
+    /// Error when dealing with UTF-8 strings
+    #[error("Error when dealing with UTF-8 strings")]
+    Utf8Error(Option<OsString>),
     /// Error when invoking `cargo-gccrs`
     #[error("Error when invoking `cargo-gccrs`")]
     InvocationError,
@@ -39,5 +43,13 @@ pub enum Error {
 impl From<Fail> for Error {
     fn from(arg_fail: Fail) -> Self {
         Error::InvalidArg(arg_fail.to_string())
+    }
+}
+
+/// UTF-8 errors happen when dealing with paths that are not UTF-8 encoded. For now,
+/// `cargo-gccrs` cannot handle them
+impl From<OsString> for Error {
+    fn from(s: OsString) -> Self {
+        Error::Utf8Error(Some(s))
     }
 }

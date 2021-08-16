@@ -16,3 +16,9 @@ anyhow = "1.0"
 
 [[bin]]
 name = "cargo-gccrs"
+
+[dev-dependencies]
+tempdir = "0.3"
+goblin = "0.4"
+ar = "0.8"
+is_executable = "1.0.1"

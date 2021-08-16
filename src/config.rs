@@ -3,9 +3,9 @@
 //! [`Gccrs::dump_config()`] function. This corresponds to invoking gccrs with the
 //! `-frust-dump-target_options` argument.
 
-pub struct GccrsConfig;
-
 use super::{Error, Result};
+use std::cmp::Ordering;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 /// Different kinds of options dumped by `gccrs -frust-dump-target_options`
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -43,21 +43,20 @@ impl DumpedOption {
             _ => Err(invalid_input),
         }
     }
+}
 
-    // FIXME: Should we use the fmt::Display trait?
+impl Display for DumpedOption {
     /// Display a parsed [`DumpedOption`] on stdout according to the format used by `rustc`
     /// `rustc` displays OS information in the same way as gccrs: `<info>`
     /// For target specific options however, `rustc` uses an equal sign and no space between
     /// the key and value. Thus, `target_<0>: <1> becomes `target_<0>=<1>`
-    pub fn display(&self) {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            DumpedOption::OsInfo(s) => println!("{}", s),
-            DumpedOption::TargetSpecific(k, v) => println!("{}={}", k, v),
+            DumpedOption::OsInfo(s) => write!(f, "{}", s),
+            DumpedOption::TargetSpecific(k, v) => write!(f, "{}={}", k, v),
         }
     }
 }
-
-use std::cmp::Ordering;
 
 impl PartialOrd for DumpedOption {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -65,7 +64,7 @@ impl PartialOrd for DumpedOption {
     }
 }
 
-/// Sort DumpedOptions based on syntax printing rules. `rustc` prints target options in
+/// Sort DumpedArgs based on syntax printing rules. `rustc` prints target options in
 /// alphabetical order, before printing OS information
 impl Ord for DumpedOption {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -80,6 +79,10 @@ impl Ord for DumpedOption {
             }
         }
     }
+}
+
+pub struct GccrsConfig {
+    options: Vec<DumpedOption>,
 }
 
 impl GccrsConfig {
@@ -98,17 +101,21 @@ impl GccrsConfig {
             .collect()
     }
 
-    /// Display the gccrs target options on stdout, in a format that cargo understands
-    pub fn display() -> Result {
+    /// Create a new instance `GccrsConfig` with a call to the `gccrs` compiler
+    pub fn new() -> Result<GccrsConfig> {
         let lines = GccrsConfig::read_options()?;
         let mut options = GccrsConfig::parse(lines)?;
 
         // Sort the vector according to the syntax printing rules
         options.sort();
 
-        options.iter().for_each(|opt| opt.display());
+        Ok(GccrsConfig { options })
+    }
+}
 
-        Ok(())
+impl Display for GccrsConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        self.options.iter().try_for_each(|opt| write!(f, "{}", opt))
     }
 }
 
