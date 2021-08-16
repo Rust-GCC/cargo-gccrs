@@ -16,6 +16,11 @@ anyhow = "1.0"
 
 [[bin]]
 name = "cargo-gccrs"
+path = "src/bin-wrapper.rs"
+
+[[bin]]
+name = "gccrs-driver"
+path = "src/bin-driver.rs"
 
 [dev-dependencies]
 tempdir = "0.3"
