@@ -96,7 +96,7 @@ impl Gccrs {
         let exit_status = Gccrs::spawn_with_args(&gccrs_args.as_args()?)?;
 
         match exit_status.success() {
-            false => Err(Error::CompileError),
+            false => Err(Error::Compile),
             true => Ok(()),
         }
     }
