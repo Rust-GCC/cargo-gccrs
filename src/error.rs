@@ -17,25 +17,25 @@ pub enum Error {
     InvalidCfgDump,
     /// Error when compiling a program using `gccrs`
     #[error("Error when compiling project using `gccrs`")]
-    CompileError,
+    Compile,
     /// IO Error when executing a `gccrs` command
     #[error("IO Error when executing `gccrs`: {0}")]
-    CommandError(#[from] IoError),
+    Command(#[from] IoError),
     /// Error when dealing with UTF-8 strings
     #[error("Error when dealing with UTF-8 strings")]
-    Utf8Error(Option<OsString>),
+    Utf8(Option<OsString>),
     /// Error when invoking `cargo-gccrs`
     #[error("Error when invoking `cargo-gccrs`")]
-    InvocationError,
+    Invocation,
     /// The `gccrs` compiler is not present in your path
     #[error("`gccrs` must be installed")]
-    InstallationError,
+    Installation,
     /// Error when initially launching `cargo-gccrs` as a wrapper to `rustc`
     #[error("Error when launching `cargo-gccrs` as a `rustc` wrapper")]
     WrapperLaunch,
     /// The `cargo-gccrs` process did not complete successfully
     #[error("`cargo-gccrs` did not complete succesfully")]
-    WrapperExitError,
+    WrapperExit,
 }
 
 // If parsing the options using `getopts` fail, then it was because an unhandled argument
@@ -50,6 +50,6 @@ impl From<Fail> for Error {
 /// `cargo-gccrs` cannot handle them
 impl From<OsString> for Error {
     fn from(s: OsString) -> Self {
-        Error::Utf8Error(Some(s))
+        Error::Utf8(Some(s))
     }
 }

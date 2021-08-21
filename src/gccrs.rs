@@ -16,7 +16,7 @@ type CmdResult<T = ()> = std::io::Result<T>;
 impl Gccrs {
     fn install() -> Result {
         // TODO: Remove this once `gccrs` gets stable releases or packages
-        Err(Error::InstallationError)
+        Err(Error::Installation)
     }
 
     /// Output fake information because gccrs does not implement the required feature
@@ -85,7 +85,7 @@ impl Gccrs {
         let exit_status = Gccrs::spawn_with_args(&gccrs_args.as_args()?)?;
 
         match exit_status.success() {
-            false => Err(Error::CompileError),
+            false => Err(Error::Compile),
             true => Ok(()),
         }
     }

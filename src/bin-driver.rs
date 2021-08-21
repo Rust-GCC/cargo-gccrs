@@ -8,7 +8,7 @@ fn main() -> Result<()> {
 
     let res = match args.get(1).map(String::as_str) {
         Some("rustc") => Gccrs::handle_rust_args(&args),
-        _ => Err(Error::InvocationError),
+        _ => Err(Error::Invocation),
     };
 
     res.map_err(|e| anyhow!(e))

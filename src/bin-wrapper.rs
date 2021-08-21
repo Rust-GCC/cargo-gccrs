@@ -15,11 +15,11 @@ pub fn spawn() -> Result<(), Error> {
 
     match cargo_gccrs
         .wait()
-        .map_err(|_| Error::WrapperExitError)?
+        .map_err(|_| Error::WrapperExit)?
         .success()
     {
         true => Ok(()),
-        false => Err(Error::WrapperExitError),
+        false => Err(Error::WrapperExit),
     }
 }
 
@@ -28,7 +28,7 @@ fn main() -> Result<()> {
 
     let res = match args.get(1).map(String::as_str) {
         Some("gccrs") => spawn(),
-        _ => Err(Error::InvocationError),
+        _ => Err(Error::Invocation),
     };
 
     res.map_err(|e| anyhow!(e))
