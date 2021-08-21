@@ -58,7 +58,7 @@ impl TryFrom<&RustcArgs> for ArgsCollection {
             .opt_strs("crate-type")
             .iter()
             .map(|type_str| CrateType::from(type_str.as_str()))
-            .map(|crate_type| format_output_filename(&matches, crate_type))
+            .map(|crate_type| format_output_filename(matches, crate_type))
             .map(|result_tuple| {
                 result_tuple.map(|(output_file, crate_type)| {
                     Args::new(&matches.free, crate_type, output_file)

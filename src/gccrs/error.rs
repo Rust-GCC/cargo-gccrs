@@ -13,17 +13,17 @@ pub enum Error {
     /// Invalid config line dumped when executing `gccrs -frust-dump-*`
     InvalidCfgDump,
     /// Error when compiling a program using `gccrs`
-    CompileError,
+    Compile,
     /// IO Error when executing a `gccrs` command
-    CommandError(IoError),
+    Command(IoError),
     /// Error when dealing with UTF-8 strings
-    Utf8Error(Option<OsString>),
+    Utf8(Option<OsString>),
 }
 
 /// IO Error should be kept for better debugging
 impl From<IoError> for Error {
     fn from(e: IoError) -> Self {
-        Error::CommandError(e)
+        Error::Command(e)
     }
 }
 
@@ -39,6 +39,6 @@ impl From<Fail> for Error {
 /// `cargo-gccrs` cannot handle them
 impl From<OsString> for Error {
     fn from(s: OsString) -> Self {
-        Error::Utf8Error(Some(s))
+        Error::Utf8(Some(s))
     }
 }
