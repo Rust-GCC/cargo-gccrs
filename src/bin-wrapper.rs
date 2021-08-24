@@ -1,3 +1,7 @@
+//! The wrapper sets the `RUSTC_WRAPPER` environment variable in order for the driver to
+//! be invoked as a compiler wrapper by cargo. Then, the project is compiled using `gccrs`
+//! instead of `rustc`
+
 use anyhow::{anyhow, Result};
 use cargo_gccrs::Error;
 
