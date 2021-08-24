@@ -136,7 +136,7 @@ impl Gccrs {
     }
 
     /// Convert arguments given to `rustc` into valid arguments for `gccrs`
-    pub fn handle_rust_args(args: &[String]) -> Result {
+    pub fn compile_with_rust_args(args: &[String]) -> Result {
         let first_rustc_arg = args.get(2);
 
         match first_rustc_arg.map(|s| s.as_str()) {

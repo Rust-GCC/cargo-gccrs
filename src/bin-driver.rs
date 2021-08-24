@@ -11,7 +11,7 @@ fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     let res = match args.get(1).map(String::as_str) {
-        Some("rustc") => Gccrs::compile_rust_args(&args),
+        Some("rustc") => Gccrs::compile_with_rust_args(&args),
         _ => Err(Error::Invocation),
     };
 
