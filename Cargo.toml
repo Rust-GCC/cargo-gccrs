@@ -11,6 +11,7 @@ repository = "https://github.com/Rust-GCC/cargo-gccrs"
 
 [dependencies]
 getopts = "0.2"
+which = "4.1"
 
 [dev-dependencies]
 tempdir = "0.3"

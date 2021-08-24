@@ -14,7 +14,7 @@ use error::Error;
 use rustc_args::RustcArgs;
 
 use std::convert::TryFrom;
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, ExitStatus};
 
 pub struct Gccrs;
 
@@ -47,18 +47,7 @@ impl Gccrs {
     }
 
     fn is_installed() -> bool {
-        // On UNIX, we can check using the `command` built-in command, but it's not cross-platform.
-        // The slow but sure way to do this is to just try and spawn a `gccrs` process.
-        match Command::new("gccrs")
-            .stderr(Stdio::null())
-            .arg("-v")
-            .status()
-        {
-            // We can check that gccrs exited successfully when passed with the version argument
-            Ok(exit_status) => exit_status.success(),
-            // If the command failed to spawn, then gccrs probably isn't in the path or installed
-            Err(_) => false,
-        }
+        which::which("gccrs").is_ok()
     }
 
     /// Install `gccrs` if the binary is not found in the path
