@@ -1,24 +1,13 @@
 //! This module aims at abstracting the usage of `gccrs` via Rust code. This is a simple
 //! wrapper around spawning a `gccrs` command with various arguments
 
-mod args;
-mod config;
-mod env_args;
-mod error;
-mod rustc_args;
-
-use args::{Args, ArgsCollection, CrateType};
-use config::GccrsConfig;
-use env_args::EnvArgs;
-use error::Error;
-use rustc_args::RustcArgs;
+use super::args::{Args, ArgsCollection, CrateType};
+use super::{config::GccrsConfig, env_args::EnvArgs, rustc_args::RustcArgs, Error, Result};
 
 use std::convert::TryFrom;
 use std::process::{Command, ExitStatus};
 
 pub struct Gccrs;
-
-pub type Result<T = ()> = std::result::Result<T, Error>;
 
 /// Internal type to use when executing commands. The errors should be converted into
 /// [`Error`]s using the `?` operator.
@@ -27,7 +16,7 @@ type CmdResult<T = ()> = std::io::Result<T>;
 impl Gccrs {
     fn install() -> Result {
         // TODO: Remove this once `gccrs` gets stable releases or packages
-        unreachable!("cargo-gccrs cannot install gccrs yet")
+        Err(Error::Installation)
     }
 
     /// Output fake information because gccrs does not implement the required feature
@@ -136,7 +125,7 @@ impl Gccrs {
     }
 
     /// Convert arguments given to `rustc` into valid arguments for `gccrs`
-    pub fn handle_rust_args(args: &[String]) -> Result {
+    pub fn compile_with_rust_args(args: &[String]) -> Result {
         let first_rustc_arg = args.get(2);
 
         match first_rustc_arg.map(|s| s.as_str()) {

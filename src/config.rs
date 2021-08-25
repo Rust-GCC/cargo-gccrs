@@ -28,11 +28,6 @@ impl DumpedOption {
     // FIXME: Should we use the convert::From<&str> trait?
     /// Attempt to parse a [`DumpedOption`] from a given input. The input should
     /// correspond to a singular line of the `gccrs.target-options.dump` file
-    ///
-    /// ```
-    /// let os_info = DumpedOption::from_str("unix");
-    /// let t_feature = DumpedOption::from_str("target_feature: \"sse\"");
-    /// ```
     pub fn from_str(input: &str) -> Result<DumpedOption> {
         let invalid_input = Error::InvalidCfgDump;
 
@@ -126,7 +121,7 @@ impl Display for GccrsConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::DumpedOption;
 
     // FIXME: Useful for tests but really ugly, keep it?
     macro_rules! s {

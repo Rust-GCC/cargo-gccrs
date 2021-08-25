@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use getopts::Matches;
 
-use super::{EnvArgs, Error, Result, RustcArgs};
+use super::{env_args::EnvArgs, rustc_args::RustcArgs, Error, Result};
 
 /// A collection containing multiple instances of `Args`. This is necessary in order
 /// to circumvent the fact that `rustc` can currently generate multiple types of binaries
