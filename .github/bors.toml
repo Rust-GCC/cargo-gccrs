@@ -1,0 +1,1 @@
+status = ["fmt-lint-build", "unit-and-integration-tests"]
