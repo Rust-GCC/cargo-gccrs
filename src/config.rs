@@ -95,10 +95,7 @@ impl GccrsConfig {
     }
 
     fn parse(input: String) -> Result<Vec<DumpedOption>> {
-        input
-            .lines()
-            .map(|line| DumpedOption::from_str(line))
-            .collect()
+        input.lines().map(DumpedOption::from_str).collect()
     }
 
     /// Create a new instance `GccrsConfig` with a call to the `gccrs` compiler
