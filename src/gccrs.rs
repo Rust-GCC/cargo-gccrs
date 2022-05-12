@@ -95,7 +95,7 @@ impl Gccrs {
         let rustc_args = RustcArgs::try_from(args)?;
         let gccrs_args = ArgsCollection::try_from(&rustc_args)?;
 
-        for arg_set in gccrs_args.iter() {
+        for arg_set in gccrs_args.data().iter() {
             Gccrs::compile(arg_set)?;
             Gccrs::maybe_callback(arg_set)?;
         }

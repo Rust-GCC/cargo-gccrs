@@ -2,7 +2,6 @@
 //! arguments for `gccrs`.
 
 use std::convert::TryFrom;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use getopts::Matches;
@@ -72,11 +71,9 @@ impl TryFrom<&RustcArgs> for ArgsCollection {
     }
 }
 
-/// Implement deref on the collection so we can easily iterate on it
-impl Deref for ArgsCollection {
-    type Target = Vec<Args>;
-
-    fn deref(&self) -> &Self::Target {
+impl ArgsCollection {
+    /// Access the collection's inner data
+    pub fn data(&self) -> &Vec<Args> {
         &self.args_set
     }
 }
