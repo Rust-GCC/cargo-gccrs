@@ -33,11 +33,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
       - name: Run unit and functional tests
         run: |
-          apt update
-          apt install ca-certificates -y
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          . $HOME/.cargo/env
           cargo test
