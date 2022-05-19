@@ -130,7 +130,7 @@ fn format_output_filename(
         .filter_map(|c_opt| {
             let mut split = c_opt.split('=');
 
-            if let Some("extra-filename") = split.next().as_deref() {
+            if let Some("extra-filename") = split.next() {
                 split.next()
             } else {
                 None
