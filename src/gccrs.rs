@@ -29,7 +29,7 @@ impl Gccrs {
     fn dump_config() -> CmdResult<ExitStatus> {
         Command::new("gccrs")
             .arg("-x")
-            .arg("rs")
+            .arg("rust")
             .arg("-frust-dump-target_options")
             .arg("-")
             .status()
