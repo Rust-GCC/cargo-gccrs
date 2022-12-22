@@ -19,7 +19,7 @@ enum DumpedOption {
 
 impl DumpedOption {
     fn parse_multi_value(input: Vec<&str>) -> Option<DumpedOption> {
-        let key = input.get(0)?.to_string();
+        let key = input.first()?.to_string();
         let value = input.get(1)?.trim_start().to_string();
 
         Some(DumpedOption::TargetSpecific(key, value))
