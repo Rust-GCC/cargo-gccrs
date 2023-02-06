@@ -28,6 +28,8 @@ jobs:
   unit-and-integration-tests:
     needs: fmt-lint-build
     runs-on: ubuntu-latest
+    env:
+      GCCRS_INCOMPLETE_AND_EXPERIMENTAL_COMPILER_DO_NOT_USE: 1
     container:
       image: philberty/gccrs
 
