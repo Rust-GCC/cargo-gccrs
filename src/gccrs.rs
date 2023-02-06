@@ -23,7 +23,7 @@ impl Gccrs {
     /// yet. This function is only available in debug mode, not release, in order for
     /// users to be aware of the limitations.
     fn fake_output(s: &str) {
-        println!("{}", s);
+        println!("{s}");
     }
 
     fn dump_config() -> CmdResult<ExitStatus> {
@@ -60,7 +60,7 @@ impl Gccrs {
         Gccrs::dump_config()?;
         let config = GccrsConfig::new()?;
 
-        println!("{}", config);
+        println!("{config}");
 
         Ok(())
     }
