@@ -52,8 +52,8 @@ impl Display for DumpedOption {
     /// the key and value. Thus, `target_<0>: <1> becomes `target_<0>=<1>`
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            DumpedOption::OsInfo(s) => write!(f, "{}", s),
-            DumpedOption::TargetSpecific(k, v) => write!(f, "{}={}", k, v),
+            DumpedOption::OsInfo(s) => write!(f, "{s}"),
+            DumpedOption::TargetSpecific(k, v) => write!(f, "{k}={v}"),
         }
     }
 }
@@ -112,7 +112,7 @@ impl GccrsConfig {
 
 impl Display for GccrsConfig {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        self.options.iter().try_for_each(|opt| write!(f, "{}", opt))
+        self.options.iter().try_for_each(|opt| write!(f, "{opt}"))
     }
 }
 

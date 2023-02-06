@@ -138,9 +138,9 @@ fn format_output_filename(
         .unwrap_or("");
 
     match crate_type {
-        CrateType::Bin => output_file.push(&format!("{}{}", crate_name, extra_filename)),
-        CrateType::DyLib => output_file.push(&format!("lib{}{}.so", crate_name, extra_filename)),
-        CrateType::StaticLib => output_file.push(&format!("lib{}{}.a", crate_name, extra_filename)),
+        CrateType::Bin => output_file.push(&format!("{crate_name}{extra_filename}")),
+        CrateType::DyLib => output_file.push(&format!("lib{crate_name}{extra_filename}.so")),
+        CrateType::StaticLib => output_file.push(&format!("lib{crate_name}{extra_filename}.a")),
         _ => unreachable!(
             "gccrs cannot handle other crate types than bin, dylib or staticlib at the moment"
         ),
