@@ -15,7 +15,7 @@ Since the project does not contain any releases yet, you can install it from git
 the following command:
 
 ```sh
-> cargo install --git https://github.com/Rust-GCC/cargo-gccrs
+> cargo install --git https://github.com/Rust-GCC/cargo-gccrs cargo-gccrs
 ```
 
 ## Usage
